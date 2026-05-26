@@ -7,22 +7,24 @@ class MockSecretStorage implements vscode.SecretStorage {
   private readonly _onDidChange = new vscode.EventEmitter<vscode.SecretStorageChangeEvent>();
   public readonly onDidChange = this._onDidChange.event;
 
-  public async keys(): Promise<string[]> {
-    return Array.from(this.storage.keys());
+  public keys(): Promise<string[]> {
+    return Promise.resolve(Array.from(this.storage.keys()));
   }
 
-  public async get(key: string): Promise<string | undefined> {
-    return this.storage.get(key);
+  public get(key: string): Promise<string | undefined> {
+    return Promise.resolve(this.storage.get(key));
   }
 
-  public async store(key: string, value: string): Promise<void> {
+  public store(key: string, value: string): Promise<void> {
     this.storage.set(key, value);
     this._onDidChange.fire({ key });
+    return Promise.resolve();
   }
 
-  public async delete(key: string): Promise<void> {
+  public delete(key: string): Promise<void> {
     this.storage.delete(key);
     this._onDidChange.fire({ key });
+    return Promise.resolve();
   }
 }
 
@@ -32,7 +34,7 @@ function createMockResponse(body: unknown, status = 200): Response {
     status,
     statusText: status === 200 ? 'OK' : 'Error',
     headers: new Headers({ 'content-type': 'application/json' }),
-    json: async () => body,
+    json: () => Promise.resolve(body),
   } as unknown as Response;
 }
 
@@ -77,17 +79,16 @@ suite('LeetCode Module Test Suite', () => {
       client.setCookieString('LEETCODE_SESSION=session123; csrftoken=csrf456;');
 
       const expectedData = { matchedUser: { username: 'testuser' } };
-      fetchMock = async (url, init) => {
-        assert.strictEqual(url.toString(), 'https://leetcode.com/graphql/');
+      fetchMock = (url, init) => {
+        const urlStr =
+          typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
+        assert.strictEqual(urlStr, 'https://leetcode.com/graphql/');
         assert.ok(init);
         assert.strictEqual(init.method, 'POST');
         const headers = init.headers as Record<string, string>;
         assert.strictEqual(headers['x-csrftoken'], 'csrf456');
-        assert.strictEqual(
-          headers['Cookie'],
-          'LEETCODE_SESSION=session123; csrftoken=csrf456;'
-        );
-        return createMockResponse({ data: expectedData });
+        assert.strictEqual(headers['Cookie'], 'LEETCODE_SESSION=session123; csrftoken=csrf456;');
+        return Promise.resolve(createMockResponse({ data: expectedData }));
       };
 
       const result = await client.query<{ matchedUser: { username: string } }>('query test {}');
@@ -96,16 +97,15 @@ suite('LeetCode Module Test Suite', () => {
 
     test('Should throw error when GraphQL returns errors', async () => {
       const client = new LeetCodeClient();
-      fetchMock = async () => {
-        return createMockResponse({
-          errors: [{ message: 'Something went wrong' }],
-        });
+      fetchMock = () => {
+        return Promise.resolve(
+          createMockResponse({
+            errors: [{ message: 'Something went wrong' }],
+          }),
+        );
       };
 
-      await assert.rejects(
-        () => client.query('query {}'),
-        /Something went wrong/
-      );
+      await assert.rejects(() => client.query('query {}'), /Something went wrong/);
     });
 
     test('Should get user status', async () => {
@@ -120,10 +120,12 @@ suite('LeetCode Module Test Suite', () => {
         isAdmin: false,
       };
 
-      fetchMock = async () => {
-        return createMockResponse({
-          data: { userStatus: mockStatus },
-        });
+      fetchMock = () => {
+        return Promise.resolve(
+          createMockResponse({
+            data: { userStatus: mockStatus },
+          }),
+        );
       };
 
       const status = await client.getUserStatus();
@@ -163,10 +165,12 @@ suite('LeetCode Module Test Suite', () => {
         isAdmin: false,
       };
 
-      fetchMock = async () => {
-        return createMockResponse({
-          data: { userStatus: mockStatus },
-        });
+      fetchMock = () => {
+        return Promise.resolve(
+          createMockResponse({
+            data: { userStatus: mockStatus },
+          }),
+        );
       };
 
       const manager = new LeetCodeAuthManager(mockContext);
@@ -188,10 +192,12 @@ suite('LeetCode Module Test Suite', () => {
         isAdmin: false,
       };
 
-      fetchMock = async () => {
-        return createMockResponse({
-          data: { userStatus: mockStatus },
-        });
+      fetchMock = () => {
+        return Promise.resolve(
+          createMockResponse({
+            data: { userStatus: mockStatus },
+          }),
+        );
       };
 
       const manager = new LeetCodeAuthManager(mockContext);

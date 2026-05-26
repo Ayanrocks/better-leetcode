@@ -58,3 +58,81 @@ export interface Problem {
   status: string | null;
   topicTags: Tag[];
 }
+
+export interface CodeSnippet {
+  lang: string;
+  langSlug: string;
+  code: string;
+}
+
+export interface ProblemDetails {
+  questionId: string;
+  questionFrontendId: string;
+  title: string;
+  titleSlug: string;
+  content: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  codeSnippets: CodeSnippet[];
+  sampleTestCase: string;
+}
+
+export interface StudyPlanQuestion {
+  title: string;
+  titleSlug: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  questionFrontendId: string;
+}
+
+export interface StudyPlanSubGroup {
+  name: string;
+  slug: string;
+  questions: StudyPlanQuestion[];
+}
+
+export interface StudyPlanDetails {
+  name: string;
+  description: string;
+  planSubGroups: StudyPlanSubGroup[];
+}
+
+/**
+ * Response from LeetCode's interpret_solution endpoint (test run).
+ */
+export interface InterpretResponse {
+  interpret_id: string;
+}
+
+/**
+ * Response from LeetCode's submit endpoint.
+ */
+export interface SubmitResponse {
+  submission_id: number;
+}
+
+/**
+ * Result of polling LeetCode's submission check endpoint.
+ * Contains per-testcase results, runtime/memory stats, and error details.
+ */
+export interface SubmissionCheckResult {
+  state: string;
+  status_code: number;
+  status_msg: string;
+  run_success: boolean;
+  total_correct: number | null;
+  total_testcases: number | null;
+  status_runtime: string;
+  status_memory: string;
+  memory_percentile: number | null;
+  runtime_percentile: number | null;
+  code_answer: string[];
+  expected_answer: string[];
+  code_output: string[];
+  std_output_list: string[];
+  compile_error: string;
+  full_compile_error: string;
+  runtime_error: string;
+  full_runtime_error: string;
+  input_formatted: string;
+  expected_output: string;
+  last_testcase: string;
+}

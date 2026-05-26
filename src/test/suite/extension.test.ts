@@ -15,6 +15,9 @@ suite('Extension Test Suite', () => {
     const commands = await vscode.commands.getCommands(true);
     assert.ok(commands.includes('better-leetcode.signin'), 'signin command should be registered');
     assert.ok(commands.includes('better-leetcode.signout'), 'signout command should be registered');
-    assert.ok(commands.includes('better-leetcode.showUser'), 'showUser command should be registered');
+    assert.ok(
+      commands.includes('better-leetcode.showUser'),
+      'showUser command should be registered',
+    );
   });
 });

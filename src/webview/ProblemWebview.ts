@@ -1,44 +1,43 @@
 import * as vscode from 'vscode';
+import { ProblemDetails } from '../leetcode/types';
 
 export class ProblemWebview {
   public static currentPanel: ProblemWebview | undefined;
   public static readonly viewType = 'problemWebview';
 
   private readonly _panel: vscode.WebviewPanel;
-  private readonly _extensionUri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
 
-  public static createOrShow(extensionUri: vscode.Uri, problemSlug: string) {
+  public static createOrShow(extensionUri: vscode.Uri, details: ProblemDetails): void {
     const column = vscode.ViewColumn.One;
 
     if (ProblemWebview.currentPanel) {
       ProblemWebview.currentPanel._panel.reveal(column);
-      ProblemWebview.currentPanel.update(problemSlug);
+      ProblemWebview.currentPanel.update(details);
       return;
     }
 
     const panel = vscode.window.createWebviewPanel(
       ProblemWebview.viewType,
-      `Problem: ${problemSlug}`,
+      `Problem: ${details.title}`,
       column,
       {
         enableScripts: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'resources')]
-      }
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'resources')],
+      },
     );
 
-    ProblemWebview.currentPanel = new ProblemWebview(panel, extensionUri);
-    ProblemWebview.currentPanel.update(problemSlug);
+    ProblemWebview.currentPanel = new ProblemWebview(panel);
+    ProblemWebview.currentPanel.update(details);
   }
 
-  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+  private constructor(panel: vscode.WebviewPanel) {
     this._panel = panel;
-    this._extensionUri = extensionUri;
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
   }
 
-  public dispose() {
+  public dispose(): void {
     ProblemWebview.currentPanel = undefined;
     this._panel.dispose();
     while (this._disposables.length) {
@@ -49,19 +48,20 @@ export class ProblemWebview {
     }
   }
 
-  private update(problemSlug: string) {
-    this._panel.title = `Problem: ${problemSlug}`;
-    this._panel.webview.html = this._getHtmlForWebview(problemSlug);
+  public update(details: ProblemDetails): void {
+    this._panel.title = `${details.questionFrontendId}. ${details.title}`;
+    this._panel.webview.html = this._getHtmlForWebview(details);
   }
 
-  private _getHtmlForWebview(problemSlug: string) {
-    // Basic styling to match VSCode theme
+  private _getHtmlForWebview(details: ProblemDetails): string {
+    const difficultyClass = details.difficulty.toLowerCase();
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${problemSlug}</title>
+    <title>${details.title}</title>
     <style>
       body {
         font-family: var(--vscode-font-family);
@@ -71,9 +71,8 @@ export class ProblemWebview {
         line-height: 1.6;
       }
       h1 {
-        font-size: 24px;
+        font-size: 22px;
         margin-bottom: 8px;
-        text-transform: capitalize;
       }
       .badges {
         margin-bottom: 20px;
@@ -99,29 +98,21 @@ export class ProblemWebview {
       code {
         font-family: var(--vscode-editor-font-family);
       }
+      ul, ol {
+        padding-left: 20px;
+      }
+      li {
+        margin-bottom: 4px;
+      }
     </style>
 </head>
 <body>
-    <h1>${problemSlug.replace(/-/g, ' ')}</h1>
+    <h1>${details.questionFrontendId}. ${details.title}</h1>
     <div class="badges">
-      <span class="badge easy">Easy</span>
+      <span class="badge ${difficultyClass}">${details.difficulty}</span>
     </div>
     <div class="content">
-      <p>Given an array of integers <code>nums</code> and an integer <code>target</code>, return indices of the two numbers such that they add up to <code>target</code>.</p>
-      <p>You may assume that each input would have exactly one solution, and you may not use the same element twice.</p>
-      <p>You can return the answer in any order.</p>
-      
-      <h3>Example 1:</h3>
-      <pre><code>Input: nums = [2,7,11,15], target = 9
-Output: [0,1]
-Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].</code></pre>
-      
-      <h3>Constraints:</h3>
-      <ul>
-        <li><code>2 <= nums.length <= 10^4</code></li>
-        <li><code>-10^9 <= nums[i] <= 10^9</code></li>
-        <li><code>-10^9 <= target <= 10^9</code></li>
-      </ul>
+      ${details.content}
     </div>
 </body>
 </html>`;

@@ -1,4 +1,15 @@
-import { LeetCodeCookies, UserStatus, GraphQLResponse, GlobalDataResponse } from './types';
+import {
+  LeetCodeCookies,
+  UserStatus,
+  GraphQLResponse,
+  GlobalDataResponse,
+  Problem,
+  ProblemDetails,
+  StudyPlanDetails,
+  InterpretResponse,
+  SubmitResponse,
+  SubmissionCheckResult,
+} from './types';
 
 /**
  * Helper to parse a raw cookie string and extract LeetCode session and CSRF token.
@@ -30,7 +41,7 @@ export function parseCookies(cookieString: string): LeetCodeCookies | undefined 
     }
   }
 
-  if (session && csrfToken) {
+  if (session !== undefined && csrfToken !== undefined) {
     return { session, csrfToken };
   }
   return undefined;
@@ -100,8 +111,8 @@ export class LeetCodeClient {
       'User-Agent':
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
         '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      'Referer': this.endpoint,
-      'Origin': this.endpoint,
+      Referer: this.endpoint,
+      Origin: this.endpoint,
     };
 
     if (this.cookies) {
@@ -128,7 +139,7 @@ export class LeetCodeClient {
       throw new Error(errMsg);
     }
 
-    if (!result.data) {
+    if (result.data === undefined) {
       throw new Error('GraphQL response returned no data.');
     }
 
@@ -162,7 +173,7 @@ export class LeetCodeClient {
   /**
    * Fetches the current daily coding challenge.
    */
-  public async getDailyChallenge(): Promise<any> {
+  public async getDailyChallenge(): Promise<Problem | undefined> {
     const queryStr = `
       query questionOfToday {
         activeDailyCodingChallengeQuestion {
@@ -184,14 +195,26 @@ export class LeetCodeClient {
         }
       }
     `;
-    const data = await this.query<any>(queryStr);
-    return data?.activeDailyCodingChallengeQuestion?.question;
+    interface DailyChallengeResponse {
+      activeDailyCodingChallengeQuestion: {
+        question: Problem;
+      } | null;
+    }
+    const data = await this.query<DailyChallengeResponse>(queryStr);
+    if (
+      data === undefined ||
+      data.activeDailyCodingChallengeQuestion === null ||
+      data.activeDailyCodingChallengeQuestion === undefined
+    ) {
+      return undefined;
+    }
+    return data.activeDailyCodingChallengeQuestion.question;
   }
 
   /**
    * Fetches a paginated list of problems.
    */
-  public async getProblems(skip: number = 0, limit: number = 50): Promise<any[]> {
+  public async getProblems(skip: number = 0, limit: number = 50): Promise<Problem[]> {
     const queryStr = `
       query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
         problemsetQuestionList: questionList(
@@ -218,13 +241,217 @@ export class LeetCodeClient {
       }
     `;
     const variables = {
-      categorySlug: "",
+      categorySlug: '',
       skip,
       limit,
-      filters: {}
+      filters: {},
     };
-    const data = await this.query<any>(queryStr, variables);
-    return data?.problemsetQuestionList?.questions || [];
+    const data = await this.query<{ problemsetQuestionList: { questions: Problem[] } }>(
+      queryStr,
+      variables,
+    );
+    if (data === undefined || data.problemsetQuestionList === undefined) {
+      return [];
+    }
+    return data.problemsetQuestionList.questions;
+  }
+
+  /**
+   * Fetches detailed information for a specific problem.
+   */
+  public async getProblemDetails(titleSlug: string): Promise<ProblemDetails> {
+    const queryStr = `
+      query questionData($titleSlug: String!) {
+        question(titleSlug: $titleSlug) {
+          questionId
+          questionFrontendId
+          title
+          titleSlug
+          content
+          difficulty
+          codeSnippets {
+            lang
+            langSlug
+            code
+          }
+          sampleTestCase
+        }
+      }
+    `;
+    const variables = { titleSlug };
+    const data = await this.query<{ question: ProblemDetails }>(queryStr, variables);
+    return data.question;
+  }
+
+  /**
+   * Fetches detailed questions and structure for a specific study plan.
+   */
+  public async getStudyPlan(planSlug: string): Promise<StudyPlanDetails> {
+    const queryStr = `
+      query studyPlanV2Detail($planSlug: String!) {
+        studyPlanV2Detail(planSlug: $planSlug) {
+          name
+          description
+          planSubGroups {
+            name
+            slug
+            questions {
+              title
+              titleSlug
+              difficulty
+              questionFrontendId
+            }
+          }
+        }
+      }
+    `;
+    const variables = { planSlug };
+    const data = await this.query<{ studyPlanV2Detail: StudyPlanDetails }>(queryStr, variables);
+    return data.studyPlanV2Detail;
+  }
+
+  // ── REST API Methods (Test / Submit) ──────────────────────────────
+
+  /**
+   * Builds common HTTP headers for REST API requests.
+   * Includes cookie auth, CSRF token, user-agent, and origin headers.
+   */
+  private buildRestHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'User-Agent':
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
+        '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      Referer: this.endpoint,
+      Origin: this.endpoint,
+    };
+
+    if (this.cookies) {
+      const { session, csrfToken } = this.cookies;
+      headers['Cookie'] = `LEETCODE_SESSION=${session}; csrftoken=${csrfToken};`;
+      headers['x-csrftoken'] = csrfToken;
+    }
+
+    return headers;
+  }
+
+  /**
+   * Returns a promise that resolves after the specified delay.
+   *
+   * @param ms - Milliseconds to wait.
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Runs the user's code against the provided test cases (interpret/test mode).
+   * Does NOT count as a formal submission.
+   *
+   * @param titleSlug - The problem's URL slug (e.g., 'two-sum').
+   * @param questionId - The numeric question ID from LeetCode.
+   * @param lang - The LeetCode language slug (e.g., 'golang', 'python3').
+   * @param typedCode - The user's solution code.
+   * @param testCases - Newline-separated test case inputs.
+   * @returns The interpret response containing the interpret_id for polling.
+   */
+  public async interpretSolution(
+    titleSlug: string,
+    questionId: string,
+    lang: string,
+    typedCode: string,
+    testCases: string,
+  ): Promise<InterpretResponse> {
+    const url = `${this.endpoint}/problems/${titleSlug}/interpret_solution/`;
+    const headers = this.buildRestHeaders();
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        lang,
+        question_id: questionId,
+        typed_code: typedCode,
+        data_input: testCases,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Interpret request failed with status ${response.status}`);
+    }
+
+    return (await response.json()) as InterpretResponse;
+  }
+
+  /**
+   * Submits the user's code as a formal solution attempt.
+   *
+   * @param titleSlug - The problem's URL slug.
+   * @param questionId - The numeric question ID.
+   * @param lang - The LeetCode language slug.
+   * @param typedCode - The user's solution code.
+   * @returns The submit response containing the submission_id for polling.
+   */
+  public async submit(
+    titleSlug: string,
+    questionId: string,
+    lang: string,
+    typedCode: string,
+  ): Promise<SubmitResponse> {
+    const url = `${this.endpoint}/problems/${titleSlug}/submit/`;
+    const headers = this.buildRestHeaders();
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        lang,
+        question_id: questionId,
+        typed_code: typedCode,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Submit request failed with status ${response.status}`);
+    }
+
+    return (await response.json()) as SubmitResponse;
+  }
+
+  /**
+   * Polls LeetCode's check endpoint until the submission is evaluated.
+   * Retries every 1.5 seconds for up to 30 attempts (~45 seconds).
+   *
+   * @param submissionId - The interpret_id or submission_id to check.
+   * @returns The complete submission result with status, runtime, memory, etc.
+   * @throws Error if polling exceeds the maximum number of attempts.
+   */
+  public async checkSubmissionStatus(
+    submissionId: string,
+  ): Promise<SubmissionCheckResult> {
+    const url = `${this.endpoint}/submissions/detail/${submissionId}/check/`;
+    const headers = this.buildRestHeaders();
+    const maxAttempts = 30;
+    const pollIntervalMs = 1500;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const response = await fetch(url, { method: 'GET', headers });
+
+      if (!response.ok) {
+        throw new Error(`Submission check failed with status ${response.status}`);
+      }
+
+      const result = (await response.json()) as SubmissionCheckResult;
+
+      if (result.state !== 'PENDING' && result.state !== 'STARTED') {
+        return result;
+      }
+
+      await this.delay(pollIntervalMs);
+    }
+
+    throw new Error(
+      'Submission check timed out after 30 attempts. Please try again.',
+    );
   }
 }
-

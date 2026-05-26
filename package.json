@@ -20,6 +20,13 @@
           "title": "Better LeetCode",
           "icon": "resources/leetcode.svg"
         }
+      ],
+      "panel": [
+        {
+          "id": "better-leetcode-results",
+          "title": "Test Results",
+          "icon": "resources/leetcode.svg"
+        }
       ]
     },
     "views": {
@@ -35,6 +42,13 @@
         {
           "id": "better-leetcode.views.studyLists",
           "name": "Study Lists"
+        }
+      ],
+      "better-leetcode-results": [
+        {
+          "id": "better-leetcode.views.testResults",
+          "name": "Test Results",
+          "type": "webview"
         }
       ]
     },
@@ -60,6 +74,11 @@
         "command": "better-leetcode.refresh",
         "title": "Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "better-leetcode.search",
+        "title": "Search Problem",
+        "icon": "$(search)"
       },
       {
         "command": "better-leetcode.testSolution",
@@ -88,13 +107,18 @@
       "view/title": [
         {
           "command": "better-leetcode.refresh",
-          "when": "view == better-leetcode.views.dailyChallenge",
+          "when": "view == better-leetcode.views.dailyChallenge || view == better-leetcode.views.allProblems || view == better-leetcode.views.studyLists",
           "group": "navigation@1"
+        },
+        {
+          "command": "better-leetcode.search",
+          "when": "view == better-leetcode.views.allProblems",
+          "group": "navigation@2"
         },
         {
           "command": "better-leetcode.signin",
           "when": "view == better-leetcode.views.dailyChallenge && !better-leetcode.isSignedIn",
-          "group": "navigation@2"
+          "group": "navigation@3"
         }
       ]
     },
@@ -113,6 +137,32 @@
             "LeetCode China (leetcode.cn)"
           ],
           "description": "The LeetCode endpoint to use."
+        },
+        "better-leetcode.storagePath": {
+          "type": "string",
+          "default": "",
+          "description": "The local directory where LeetCode problem solutions will be stored."
+        },
+        "better-leetcode.defaultLanguage": {
+          "type": "string",
+          "default": "",
+          "enum": [
+            "cpp",
+            "java",
+            "python3",
+            "python",
+            "javascript",
+            "typescript",
+            "csharp",
+            "c",
+            "golang",
+            "kotlin",
+            "swift",
+            "rust",
+            "ruby",
+            "php"
+          ],
+          "description": "The default language to generate code files in."
         }
       }
     }

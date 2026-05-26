@@ -29,7 +29,7 @@ export class LeetCodeAuthManager {
           this.updateClientEndpoint();
           await this.verifySession();
         }
-      })
+      }),
     );
   }
 
@@ -39,7 +39,7 @@ export class LeetCodeAuthManager {
    */
   public async initialize(): Promise<void> {
     const cookie = await this.context.secrets.get(LeetCodeAuthManager.SECRET_KEY);
-    if (cookie) {
+    if (cookie !== undefined) {
       this.client.setCookieString(cookie);
       await this.verifySession();
     }
@@ -134,7 +134,11 @@ export class LeetCodeAuthManager {
    */
   private setSession(status: UserStatus | undefined): void {
     this.userStatus = status;
-    vscode.commands.executeCommand('setContext', 'better-leetcode.isSignedIn', !!status?.isSignedIn);
+    void vscode.commands.executeCommand(
+      'setContext',
+      'better-leetcode.isSignedIn',
+      status !== undefined ? status.isSignedIn : false,
+    );
     this._onDidChangeSession.fire(status);
   }
 }

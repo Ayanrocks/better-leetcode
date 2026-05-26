@@ -2,8 +2,10 @@ import * as vscode from 'vscode';
 import { LeetCodeAuthManager } from '../leetcode';
 
 export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> = new vscode.EventEmitter<vscode.TreeItem | undefined | null | void>();
-  readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
+  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> =
+    new vscode.EventEmitter<vscode.TreeItem | undefined | null | void>();
+  readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | null | void> =
+    this._onDidChangeTreeData.event;
 
   constructor(private authManager: LeetCodeAuthManager) {}
 
@@ -19,22 +21,34 @@ export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<v
     if (element) {
       return [];
     }
-    
+
     try {
       const problem = await this.authManager.getClient().getDailyChallenge();
-      if (!problem) {
-        return [new vscode.TreeItem('No daily challenge available', vscode.TreeItemCollapsibleState.None)];
+      if (problem === undefined) {
+        return [
+          new vscode.TreeItem('No daily challenge available', vscode.TreeItemCollapsibleState.None),
+        ];
       }
 
-      const item = new vscode.TreeItem(`${problem.title} (Daily)`, vscode.TreeItemCollapsibleState.None);
+      const item = new vscode.TreeItem(
+        `${problem.title} (Daily)`,
+        vscode.TreeItemCollapsibleState.None,
+      );
       item.description = problem.difficulty;
       item.tooltip = `Daily Challenge: ${problem.title}`;
       item.iconPath = this.getDifficultyIcon(problem.difficulty);
-      item.command = { command: 'better-leetcode.openProblem', title: 'Open Problem', arguments: [problem.titleSlug] };
-      
+      item.command = {
+        command: 'better-leetcode.openProblem',
+        title: 'Open Problem',
+        arguments: [problem.titleSlug],
+      };
+
       return [item];
     } catch (e) {
-      const errorItem = new vscode.TreeItem('Error fetching daily challenge', vscode.TreeItemCollapsibleState.None);
+      const errorItem = new vscode.TreeItem(
+        'Error fetching daily challenge',
+        vscode.TreeItemCollapsibleState.None,
+      );
       errorItem.description = String(e);
       return [errorItem];
     }

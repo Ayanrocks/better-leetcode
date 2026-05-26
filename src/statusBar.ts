@@ -10,10 +10,7 @@ export class LeetCodeStatusBarController {
 
   constructor(authManager: LeetCodeAuthManager) {
     this.authManager = authManager;
-    this.statusBarItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Left,
-      100
-    );
+    this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     this.statusBarItem.command = 'better-leetcode.showUser';
     this.update();
 

@@ -1,13 +1,32 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 import { LeetCodeAuthManager } from '../leetcode';
+import { Problem } from '../leetcode/types';
+
+interface ProblemCacheData {
+  timestamp: number;
+  questions: Problem[];
+}
 
 export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> = new vscode.EventEmitter<vscode.TreeItem | undefined | null | void>();
-  readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
+  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> =
+    new vscode.EventEmitter<vscode.TreeItem | undefined | null | void>();
+  readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | null | void> =
+    this._onDidChangeTreeData.event;
 
-  constructor(private authManager: LeetCodeAuthManager) {}
+  private problemsCache: Problem[] = [];
 
-  refresh(): void {
+  constructor(
+    private authManager: LeetCodeAuthManager,
+    private context: vscode.ExtensionContext,
+  ) {}
+
+  refresh(force: boolean = false): void {
+    if (force) {
+      // Clear in-memory cache to trigger refetch
+      this.problemsCache = [];
+    }
     this._onDidChangeTreeData.fire();
   }
 
@@ -19,22 +38,97 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
     if (element) {
       return [];
     }
-    
+
     try {
-      const problems = await this.authManager.getClient().getProblems(0, 50); // First 50 for now
-      
-      return problems.map((problem: any) => {
-        const item = new vscode.TreeItem(`${problem.frontendQuestionId}. ${problem.title}`, vscode.TreeItemCollapsibleState.None);
+      const problems = await this.loadProblems();
+
+      return problems.map((problem: Problem) => {
+        const item = new vscode.TreeItem(
+          `${problem.frontendQuestionId}. ${problem.title}`,
+          vscode.TreeItemCollapsibleState.None,
+        );
         item.description = problem.difficulty;
         item.iconPath = this.getDifficultyIcon(problem.difficulty);
-        item.command = { command: 'better-leetcode.openProblem', title: 'Open Problem', arguments: [problem.titleSlug] };
+        item.command = {
+          command: 'better-leetcode.openProblem',
+          title: 'Open Problem',
+          arguments: [problem.titleSlug],
+        };
         return item;
       });
     } catch (e) {
-      const errorItem = new vscode.TreeItem('Error fetching problems', vscode.TreeItemCollapsibleState.None);
+      const errorItem = new vscode.TreeItem(
+        'Error fetching problems',
+        vscode.TreeItemCollapsibleState.None,
+      );
       errorItem.description = String(e);
       return [errorItem];
     }
+  }
+
+  /**
+   * Returns the currently cached/loaded problems list.
+   */
+  public getProblemsList(): Problem[] {
+    return this.problemsCache;
+  }
+
+  private async loadProblems(): Promise<Problem[]> {
+    if (this.problemsCache.length > 0) {
+      return this.problemsCache;
+    }
+
+    const cacheDir = this.context.globalStorageUri.fsPath;
+    const cacheFile = path.join(cacheDir, 'problems_cache.json');
+
+    // Ensure the cache directory exists
+    if (!fs.existsSync(cacheDir)) {
+      await fs.promises.mkdir(cacheDir, { recursive: true });
+    }
+
+    let needsFetch = true;
+    if (fs.existsSync(cacheFile)) {
+      try {
+        const fileContent = await fs.promises.readFile(cacheFile, 'utf-8');
+        const cacheData = JSON.parse(fileContent) as ProblemCacheData;
+        const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+
+        if (Date.now() - cacheData.timestamp < oneWeekMs && cacheData.questions.length > 0) {
+          this.problemsCache = cacheData.questions;
+          needsFetch = false;
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to read problems cache:', err);
+      }
+    }
+
+    if (needsFetch) {
+      await this.fetchAndCacheProblems(cacheFile);
+    }
+
+    return this.problemsCache;
+  }
+
+  private async fetchAndCacheProblems(cacheFile: string): Promise<void> {
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Downloading LeetCode problem catalog...',
+        cancellable: false,
+      },
+      async () => {
+        const questions = await this.authManager.getClient().getProblems(0, 5000);
+        if (questions.length > 0) {
+          this.problemsCache = questions;
+          const cacheData: ProblemCacheData = {
+            timestamp: Date.now(),
+            questions,
+          };
+          await fs.promises.writeFile(cacheFile, JSON.stringify(cacheData), 'utf-8');
+        }
+      },
+    );
   }
 
   private getDifficultyIcon(difficulty: string): vscode.ThemeIcon {
