@@ -1,0 +1,76 @@
+{
+  "name": "better-leetcode",
+  "displayName": "Better Leetcode",
+  "description": "A flexible and robust VS Code extension for solving Leetcode problems.",
+  "version": "0.0.1",
+  "publisher": "better-leetcode-team",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "better-leetcode.signin",
+        "title": "Better Leetcode: Sign In"
+      },
+      {
+        "command": "better-leetcode.signout",
+        "title": "Better Leetcode: Sign Out"
+      },
+      {
+        "command": "better-leetcode.showUser",
+        "title": "Better Leetcode: Show Logged-in User"
+      }
+    ],
+    "configuration": {
+      "title": "Better Leetcode",
+      "properties": {
+        "better-leetcode.endpoint": {
+          "type": "string",
+          "default": "https://leetcode.com",
+          "enum": [
+            "https://leetcode.com",
+            "https://leetcode.cn"
+          ],
+          "enumDescriptions": [
+            "LeetCode Global (leetcode.com)",
+            "LeetCode China (leetcode.cn)"
+          ],
+          "description": "The LeetCode endpoint to use."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --watch",
+    "package": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "compile-tests": "tsc -p tsconfig.test.json",
+    "watch-tests": "tsc -p tsconfig.test.json -w",
+    "pretest": "npm run compile && npm run compile-tests",
+    "test": "node ./out/test/runTest.js",
+    "lint": "eslint src --ext ts",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.12.7",
+    "@types/vscode": "^1.90.0",
+    "@typescript-eslint/eslint-plugin": "^7.7.1",
+    "@typescript-eslint/parser": "^7.7.1",
+    "@vscode/test-electron": "^2.3.9",
+    "esbuild": "^0.20.2",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "mocha": "^10.4.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
+  }
+}
