@@ -14,6 +14,24 @@ export interface TestResultDisplayData {
 }
 
 /**
+ * Represents the resolved per-case data used for rendering.
+ * Separates the concept of "field is present" (hasOutput, hasExpected)
+ * from "field has a non-empty string value" to correctly handle cases
+ * where LeetCode returns an empty string as the actual output.
+ */
+interface CaseData {
+  input: string;
+  output: string;
+  expected: string;
+  stdout: string;
+  passed: boolean;
+  /** Whether the output field was present in the LeetCode response. */
+  hasOutput: boolean;
+  /** Whether the expected field was present in the LeetCode response. */
+  hasExpected: boolean;
+}
+
+/**
  * Provides a webview-based panel in VS Code's bottom panel area
  * (alongside Terminal, Problems, Output) for displaying LeetCode
  * test and submission results with a rich, interactive UI.
@@ -170,8 +188,6 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     const { result } = data;
     const statusColor = this.getStatusColor(result.status_code);
     const statusIcon = result.run_success ? '✅' : '❌';
-    const totalCases = result.total_testcases ?? (result.code_answer ?? []).length;
-    const totalCorrect = result.total_correct ?? 0;
 
     const hasError =
       (result.compile_error !== undefined && result.compile_error !== '') ||
@@ -179,10 +195,18 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     const errorText = result.full_compile_error || result.full_runtime_error ||
       result.compile_error || result.runtime_error || '';
 
-    // Build test case data for the webview JavaScript
-    const casesJson = this.buildCasesJson(data);
+    // Determine how to count cases.
+    // For test (interpret), use per-case arrays (code_answer, expected_answer).
+    // For submit, LeetCode usually does NOT return per-case arrays — use
+    // total_correct / total_testcases from the result instead.
+    const cases = this.buildCases(data);
+    const casesJson = JSON.stringify(cases);
+
+    const totalCases = this.getTotalCases(data, cases);
+    const totalCorrect = this.getTotalCorrect(data, cases);
 
     const showStats = data.type === 'submit' && result.run_success;
+    const hasCases = cases.length > 0;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -377,7 +401,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       opacity: 0.9;
     }
 
-    /* ── Single column layout for error-only ─────────── */
+    /* ── Single column layout for error-only or no-sidebar ── */
     .container.no-sidebar {
       grid-template-columns: 1fr;
     }
@@ -385,13 +409,29 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     .container.no-sidebar .sidebar {
       display: none;
     }
+
+    /* Success summary shown when no per-case data is available */
+    .success-summary {
+      text-align: center;
+      padding: 40px 20px;
+      opacity: 0.8;
+    }
+
+    .success-summary .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .success-summary p {
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
-  <div class="container${hasError && totalCases === 0 ? ' no-sidebar' : ''}" id="root">
+  <div class="container${(hasError && !hasCases) || (!hasCases && data.type === 'submit' && result.run_success) ? ' no-sidebar' : ''}" id="root">
     <div class="sidebar">
       <div class="sidebar-header">Test Cases</div>
-      ${this.buildCaseListHtml(data)}
+      ${this.buildCaseListHtmlFromCases(cases, statusColor)}
     </div>
 
     <div class="main" id="main-content">
@@ -405,7 +445,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       ${hasError ? this.buildErrorHtml(errorText) : ''}
 
       <div id="case-detail">
-        ${this.buildCaseDetailHtml(data, 0)}
+        ${hasCases ? this.buildCaseDetailFromCase(cases[0]) : this.buildSuccessSummary(data)}
       </div>
     </div>
   </div>
@@ -422,18 +462,19 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
           item.classList.add('active');
           var detail = document.getElementById('case-detail');
           if (detail && cases[index]) {
-            detail.innerHTML = buildDetail(cases[index], index);
+            detail.innerHTML = buildDetail(cases[index]);
           }
         });
       });
 
       function escHtml(str) {
+        if (str === null || str === undefined) return '';
         var div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
       }
 
-      function buildDetail(c, idx) {
+      function buildDetail(c) {
         var html = '';
         if (c.input) {
           html += '<div class="section">';
@@ -441,14 +482,16 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
           html += '<div class="code-block">' + escHtml(c.input) + '</div>';
           html += '</div>';
         }
-        if (c.output !== undefined && c.output !== null) {
+        // Always show output and expected sections if case has them,
+        // even when they are empty strings (to signal "no output").
+        if (c.hasOutput) {
           html += '<div class="section">';
           html += '<div class="section-title">Output</div>';
-          var mismatch = c.expected !== undefined && c.output !== c.expected;
+          var mismatch = c.hasExpected && c.output !== c.expected;
           html += '<div class="code-block' + (mismatch ? ' mismatch' : '') + '">' + escHtml(c.output) + '</div>';
           html += '</div>';
         }
-        if (c.expected !== undefined && c.expected !== null) {
+        if (c.hasExpected) {
           html += '<div class="section">';
           html += '<div class="section-title">Expected</div>';
           html += '<div class="code-block">' + escHtml(c.expected) + '</div>';
@@ -469,25 +512,19 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Builds the HTML for the sidebar test case list items.
+   * Builds the HTML for the sidebar test case list items from resolved case data.
    */
-  private buildCaseListHtml(data: TestResultDisplayData): string {
-    const { result } = data;
-    const codeAnswer = result.code_answer ?? [];
-    const expectedAnswer = result.expected_answer ?? [];
-    const count = Math.max(
-      codeAnswer.length,
-      expectedAnswer.length,
-      data.testInputs.length,
-      1,
-    );
-
+  private buildCaseListHtmlFromCases(
+    cases: CaseData[],
+    statusColor: string,
+  ): string {
     const items: string[] = [];
-    for (let i = 0; i < count; i++) {
-      const actual = codeAnswer[i];
-      const expected = expectedAnswer[i];
-      const passed = actual !== undefined && expected !== undefined && actual === expected;
-      const dotClass = passed ? 'pass' : 'fail';
+    for (let i = 0; i < cases.length; i++) {
+      const caseData = cases[i];
+      if (caseData === undefined) {
+        continue;
+      }
+      const dotClass = caseData.passed ? 'pass' : 'fail';
       const activeClass = i === 0 ? ' active' : '';
 
       items.push(
@@ -540,50 +577,45 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Builds the HTML for a specific test case's Input/Output/Expected detail.
+   * Builds the HTML for a single test case detail from resolved CaseData.
    */
-  private buildCaseDetailHtml(data: TestResultDisplayData, index: number): string {
-    const { result, testInputs } = data;
-    const codeAnswer = result.code_answer ?? [];
-    const expectedAnswer = result.expected_answer ?? [];
-    const stdOutputList = result.std_output_list ?? [];
-    const input = testInputs[index] ?? '';
-    const output = codeAnswer[index] ?? '';
-    const expected = expectedAnswer[index] ?? '';
-    const stdout = stdOutputList[index] ?? '';
-    const hasMismatch = output !== expected;
+  private buildCaseDetailFromCase(caseData: CaseData | undefined): string {
+    if (caseData === undefined) {
+      return '';
+    }
 
     let html = '';
 
-    if (input !== '') {
+    if (caseData.input !== '') {
       html += `
         <div class="section">
           <div class="section-title">Input</div>
-          <div class="code-block">${this.escapeHtml(input)}</div>
+          <div class="code-block">${this.escapeHtml(caseData.input)}</div>
         </div>`;
     }
 
-    if (output !== '') {
+    if (caseData.hasOutput) {
+      const hasMismatch = caseData.hasExpected && caseData.output !== caseData.expected;
       html += `
         <div class="section">
           <div class="section-title">Output</div>
-          <div class="code-block${hasMismatch ? ' mismatch' : ''}">${this.escapeHtml(output)}</div>
+          <div class="code-block${hasMismatch ? ' mismatch' : ''}">${this.escapeHtml(caseData.output)}</div>
         </div>`;
     }
 
-    if (expected !== '') {
+    if (caseData.hasExpected) {
       html += `
         <div class="section">
           <div class="section-title">Expected</div>
-          <div class="code-block">${this.escapeHtml(expected)}</div>
+          <div class="code-block">${this.escapeHtml(caseData.expected)}</div>
         </div>`;
     }
 
-    if (stdout !== '') {
+    if (caseData.stdout !== '') {
       html += `
         <div class="section">
           <div class="section-title">Stdout</div>
-          <div class="code-block stdout">${this.escapeHtml(stdout)}</div>
+          <div class="code-block stdout">${this.escapeHtml(caseData.stdout)}</div>
         </div>`;
     }
 
@@ -591,37 +623,116 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Builds a JSON string of test case data for the webview JavaScript.
+   * Builds a summary HTML when there are no per-case details to show
+   * (e.g., a successful submission with all hidden tests passing).
    */
-  private buildCasesJson(data: TestResultDisplayData): string {
+  private buildSuccessSummary(data: TestResultDisplayData): string {
+    const { result } = data;
+    if (data.type === 'submit' && result.run_success) {
+      return `<div class="success-summary">
+        <div class="icon">🎉</div>
+        <p>All test cases passed!</p>
+      </div>`;
+    }
+    return '';
+  }
+
+  /**
+   * Resolves per-case data from the LeetCode result.
+   *
+   * For interpret (test) results, LeetCode returns code_answer and
+   * expected_answer as parallel arrays (one entry per test case).
+   *
+   * For submit results, these arrays are usually empty. Instead:
+   *  - On success: total_correct === total_testcases, no per-case data.
+   *  - On failure: last_testcase, expected_output, and code_output
+   *    describe the first failing case.
+   */
+  private buildCases(data: TestResultDisplayData): CaseData[] {
     const { result, testInputs } = data;
     const codeAnswer = result.code_answer ?? [];
     const expectedAnswer = result.expected_answer ?? [];
     const stdOutputList = result.std_output_list ?? [];
-    const count = Math.max(
-      codeAnswer.length,
-      expectedAnswer.length,
-      testInputs.length,
-      1,
-    );
+    const codeOutput = result.code_output ?? [];
 
-    const cases: Array<{
-      input: string;
-      output: string;
-      expected: string;
-      stdout: string;
-    }> = [];
+    // Determine whether we have per-case array data
+    const hasPerCaseData = codeAnswer.length > 0 || expectedAnswer.length > 0;
 
-    for (let i = 0; i < count; i++) {
-      cases.push({
-        input: testInputs[i] ?? '',
-        output: codeAnswer[i] ?? '',
-        expected: expectedAnswer[i] ?? '',
-        stdout: stdOutputList[i] ?? '',
-      });
+    if (hasPerCaseData) {
+      // Test (interpret) flow — build from parallel arrays
+      const count = Math.max(
+        codeAnswer.length,
+        expectedAnswer.length,
+        testInputs.length,
+      );
+
+      const cases: CaseData[] = [];
+      for (let i = 0; i < count; i++) {
+        const output = codeAnswer[i];
+        const expected = expectedAnswer[i];
+        const hasOutput = output !== undefined;
+        const hasExpected = expected !== undefined;
+        const passed = hasOutput && hasExpected && output === expected;
+
+        cases.push({
+          input: testInputs[i] ?? '',
+          output: output ?? '',
+          expected: expected ?? '',
+          stdout: stdOutputList[i] ?? '',
+          passed,
+          hasOutput,
+          hasExpected,
+        });
+      }
+      return cases;
     }
 
-    return JSON.stringify(cases);
+    // Submit flow — no per-case arrays
+    if (data.type === 'submit' && !result.run_success) {
+      // Failed submission: show the first failing case from scalar fields
+      const failInput = result.last_testcase ?? '';
+      const failExpected = result.expected_output ?? '';
+      // code_output may contain the actual output for the failing case
+      const failOutput = codeOutput.length > 0 ? codeOutput[0] ?? '' : '';
+      const failStdout = stdOutputList.length > 0 ? stdOutputList[0] ?? '' : '';
+
+      return [{
+        input: failInput,
+        output: failOutput,
+        expected: failExpected,
+        stdout: failStdout,
+        passed: false,
+        hasOutput: failOutput !== '',
+        hasExpected: failExpected !== '',
+      }];
+    }
+
+    // Successful submission with no per-case data — nothing to show per case
+    return [];
+  }
+
+  /**
+   * Returns the total number of test cases for the status banner.
+   */
+  private getTotalCases(data: TestResultDisplayData, cases: CaseData[]): number {
+    const { result } = data;
+    // Prefer total_testcases from LeetCode (set for submissions)
+    if (result.total_testcases !== null && result.total_testcases !== undefined) {
+      return result.total_testcases;
+    }
+    return cases.length;
+  }
+
+  /**
+   * Returns the count of correct test cases for the status banner.
+   */
+  private getTotalCorrect(data: TestResultDisplayData, cases: CaseData[]): number {
+    const { result } = data;
+    // Prefer total_correct from LeetCode (set for submissions)
+    if (result.total_correct !== null && result.total_correct !== undefined) {
+      return result.total_correct;
+    }
+    return cases.filter((c) => c.passed).length;
   }
 
   /**
