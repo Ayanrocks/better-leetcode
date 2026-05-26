@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
 import { LeetCodeAuthManager } from './leetcode';
 import { LeetCodeStatusBarController } from './statusBar';
+import { DailyChallengeTreeDataProvider } from './tree/DailyChallengeTreeDataProvider';
+import { AllProblemsTreeDataProvider } from './tree/AllProblemsTreeDataProvider';
+import { StudyListsTreeDataProvider } from './tree/StudyListsTreeDataProvider';
+import { ProblemWebview } from './webview/ProblemWebview';
 
 /**
  * Handles the Sign In command.
@@ -212,11 +216,35 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   await authManager.initialize();
 
+  // Register Tree Views
+  const dailyChallengeProvider = new DailyChallengeTreeDataProvider(authManager);
+  vscode.window.registerTreeDataProvider('better-leetcode.views.dailyChallenge', dailyChallengeProvider);
+
+  const allProblemsProvider = new AllProblemsTreeDataProvider(authManager);
+  vscode.window.registerTreeDataProvider('better-leetcode.views.allProblems', allProblemsProvider);
+
+  const studyListsProvider = new StudyListsTreeDataProvider(authManager);
+  vscode.window.registerTreeDataProvider('better-leetcode.views.studyLists', studyListsProvider);
+
   // Register Commands
   context.subscriptions.push(
     vscode.commands.registerCommand('better-leetcode.signin', () => handleSignIn(authManager)),
     vscode.commands.registerCommand('better-leetcode.signout', () => handleSignOut(authManager)),
-    vscode.commands.registerCommand('better-leetcode.showUser', () => handleShowUser(authManager))
+    vscode.commands.registerCommand('better-leetcode.showUser', () => handleShowUser(authManager)),
+    vscode.commands.registerCommand('better-leetcode.openProblem', (problemSlug: string) => {
+      ProblemWebview.createOrShow(context.extensionUri, problemSlug);
+    }),
+    vscode.commands.registerCommand('better-leetcode.testSolution', () => {
+      vscode.window.showInformationMessage('Testing solution...');
+    }),
+    vscode.commands.registerCommand('better-leetcode.submitSolution', () => {
+      vscode.window.showInformationMessage('Submitting solution...');
+    }),
+    vscode.commands.registerCommand('better-leetcode.refresh', () => {
+      dailyChallengeProvider.refresh();
+      allProblemsProvider.refresh();
+      studyListsProvider.refresh();
+    })
   );
 }
 

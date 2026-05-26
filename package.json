@@ -13,20 +13,91 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "better-leetcode-explorer",
+          "title": "Better LeetCode",
+          "icon": "resources/leetcode.svg"
+        }
+      ]
+    },
+    "views": {
+      "better-leetcode-explorer": [
+        {
+          "id": "better-leetcode.views.dailyChallenge",
+          "name": "Daily Challenge"
+        },
+        {
+          "id": "better-leetcode.views.allProblems",
+          "name": "Problems"
+        },
+        {
+          "id": "better-leetcode.views.studyLists",
+          "name": "Study Lists"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "better-leetcode.signin",
-        "title": "Better Leetcode: Sign In"
+        "title": "Better LeetCode: Sign In",
+        "icon": "$(sign-in)"
       },
       {
         "command": "better-leetcode.signout",
-        "title": "Better Leetcode: Sign Out"
+        "title": "Better LeetCode: Sign Out"
       },
       {
         "command": "better-leetcode.showUser",
-        "title": "Better Leetcode: Show Logged-in User"
+        "title": "Better LeetCode: Show Logged-in User"
+      },
+      {
+        "command": "better-leetcode.openProblem",
+        "title": "Better LeetCode: Open Problem"
+      },
+      {
+        "command": "better-leetcode.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "better-leetcode.testSolution",
+        "title": "Test",
+        "icon": "$(play)"
+      },
+      {
+        "command": "better-leetcode.submitSolution",
+        "title": "Submit",
+        "icon": "$(cloud-upload)"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "better-leetcode.testSolution",
+          "group": "navigation@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "better-leetcode.submitSolution",
+          "group": "navigation@2",
+          "when": "editorTextFocus"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "better-leetcode.refresh",
+          "when": "view == better-leetcode.views.dailyChallenge",
+          "group": "navigation@1"
+        },
+        {
+          "command": "better-leetcode.signin",
+          "when": "view == better-leetcode.views.dailyChallenge && !better-leetcode.isSignedIn",
+          "group": "navigation@2"
+        }
+      ]
+    },
     "configuration": {
       "title": "Better Leetcode",
       "properties": {

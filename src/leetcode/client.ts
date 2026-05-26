@@ -158,4 +158,73 @@ export class LeetCodeClient {
     const data = await this.query<GlobalDataResponse>(queryStr);
     return data.userStatus;
   }
+
+  /**
+   * Fetches the current daily coding challenge.
+   */
+  public async getDailyChallenge(): Promise<any> {
+    const queryStr = `
+      query questionOfToday {
+        activeDailyCodingChallengeQuestion {
+          date
+          link
+          question {
+            frontendQuestionId: questionFrontendId
+            title
+            titleSlug
+            difficulty
+            acRate
+            paidOnly: isPaidOnly
+            status
+            topicTags {
+              name
+              slug
+            }
+          }
+        }
+      }
+    `;
+    const data = await this.query<any>(queryStr);
+    return data?.activeDailyCodingChallengeQuestion?.question;
+  }
+
+  /**
+   * Fetches a paginated list of problems.
+   */
+  public async getProblems(skip: number = 0, limit: number = 50): Promise<any[]> {
+    const queryStr = `
+      query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
+        problemsetQuestionList: questionList(
+          categorySlug: $categorySlug
+          limit: $limit
+          skip: $skip
+          filters: $filters
+        ) {
+          total: totalNum
+          questions: data {
+            frontendQuestionId: questionFrontendId
+            title
+            titleSlug
+            difficulty
+            acRate
+            paidOnly: isPaidOnly
+            status
+            topicTags {
+              name
+              slug
+            }
+          }
+        }
+      }
+    `;
+    const variables = {
+      categorySlug: "",
+      skip,
+      limit,
+      filters: {}
+    };
+    const data = await this.query<any>(queryStr, variables);
+    return data?.problemsetQuestionList?.questions || [];
+  }
 }
+

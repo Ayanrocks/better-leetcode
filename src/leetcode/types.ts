@@ -42,3 +42,19 @@ export interface GraphQLResponse<T> {
 export interface GlobalDataResponse {
   userStatus: UserStatus;
 }
+
+export interface Tag {
+  name: string;
+  slug: string;
+}
+
+export interface Problem {
+  frontendQuestionId: string;
+  title: string;
+  titleSlug: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  acRate: number;
+  paidOnly: boolean;
+  status: string | null;
+  topicTags: Tag[];
+}

@@ -134,6 +134,7 @@ export class LeetCodeAuthManager {
    */
   private setSession(status: UserStatus | undefined): void {
     this.userStatus = status;
+    vscode.commands.executeCommand('setContext', 'better-leetcode.isSignedIn', !!status?.isSignedIn);
     this._onDidChangeSession.fire(status);
   }
 }

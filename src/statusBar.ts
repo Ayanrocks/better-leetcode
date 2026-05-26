@@ -47,9 +47,13 @@ export class LeetCodeStatusBarController {
       this.statusBarItem.tooltip =
         `Signed in as ${status.realName || status.username} (${premiumLabel}).\n` +
         `Click to view account actions.`;
+      this.statusBarItem.backgroundColor = undefined;
+      this.statusBarItem.color = undefined;
     } else {
-      this.statusBarItem.text = '$(signin) LeetCode: Sign In';
+      this.statusBarItem.text = '$(sign-in) LeetCode: Sign In';
       this.statusBarItem.tooltip = 'Click to sign in to LeetCode';
+      this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+      this.statusBarItem.color = undefined;
     }
   }
 }
