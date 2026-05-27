@@ -111,22 +111,22 @@
         {
           "command": "better-leetcode.showProblemStatement",
           "group": "navigation@0",
-          "when": "editorTextFocus"
+          "when": "editorTextFocus && better-leetcode.isLeetCodeEditor"
         },
         {
           "command": "better-leetcode.changeLanguage",
           "group": "navigation@1",
-          "when": "editorTextFocus"
+          "when": "editorTextFocus && better-leetcode.isLeetCodeEditor"
         },
         {
           "command": "better-leetcode.testSolution",
           "group": "navigation@2",
-          "when": "editorTextFocus"
+          "when": "editorTextFocus && better-leetcode.isLeetCodeEditor"
         },
         {
           "command": "better-leetcode.submitSolution",
           "group": "navigation@3",
-          "when": "editorTextFocus"
+          "when": "editorTextFocus && better-leetcode.isLeetCodeEditor"
         },
         {
           "command": "better-leetcode.openEditor",

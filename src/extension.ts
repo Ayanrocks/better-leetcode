@@ -833,6 +833,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
 
+  // Track if active editor is a LeetCode problem
+  const updateLeetCodeEditorContext = (editor: vscode.TextEditor | undefined) => {
+    let isLeetCodeEditor = false;
+    if (editor) {
+      const metadata = readProblemMetadata(editor.document.uri.fsPath);
+      if (metadata !== null) {
+        isLeetCodeEditor = true;
+      }
+    }
+    void vscode.commands.executeCommand('setContext', 'better-leetcode.isLeetCodeEditor', isLeetCodeEditor);
+  };
+
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(updateLeetCodeEditorContext)
+  );
+  updateLeetCodeEditorContext(vscode.window.activeTextEditor);
+
   // Handle messages from the test results webview
   testResultsPanel.onMessage((message) => {
     if (message.command === 'openProblemStatement') {
