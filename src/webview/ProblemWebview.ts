@@ -5,6 +5,8 @@ export class ProblemWebview {
   public static currentPanel: ProblemWebview | undefined;
   public static readonly viewType = 'problemWebview';
 
+  public currentProblemSlug?: string;
+
   private readonly _panel: vscode.WebviewPanel;
   private _disposables: vscode.Disposable[] = [];
 
@@ -49,6 +51,7 @@ export class ProblemWebview {
   }
 
   public update(details: ProblemDetails): void {
+    this.currentProblemSlug = details.titleSlug;
     this._panel.title = `${details.questionFrontendId}. ${details.title}`;
     this._panel.webview.html = this._getHtmlForWebview(details);
   }

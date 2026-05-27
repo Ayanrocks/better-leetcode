@@ -801,6 +801,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('better-leetcode.openProblem', (problemSlug: string) => {
       void handleOpenProblem(authManager, context, problemSlug);
     }),
+    vscode.commands.registerCommand('better-leetcode.showProblemStatement', () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+      const metadata = readProblemMetadata(editor.document.uri.fsPath);
+      if (metadata) {
+        void handleOpenProblem(authManager, context, metadata.titleSlug);
+      }
+    }),
+    vscode.commands.registerCommand('better-leetcode.openEditor', () => {
+      if (ProblemWebview.currentPanel?.currentProblemSlug) {
+        void handleOpenProblem(authManager, context, ProblemWebview.currentPanel.currentProblemSlug);
+      }
+    }),
     vscode.commands.registerCommand('better-leetcode.search', () => {
       void handleSearch(allProblemsProvider);
     }),

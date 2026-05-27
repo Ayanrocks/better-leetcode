@@ -93,25 +93,45 @@
       {
         "command": "better-leetcode.changeLanguage",
         "title": "Change Language",
-        "icon": "$(symbol-enum)"
+        "icon": "$(code)"
+      },
+      {
+        "command": "better-leetcode.showProblemStatement",
+        "title": "Show Problem Statement",
+        "icon": "$(book)"
+      },
+      {
+        "command": "better-leetcode.openEditor",
+        "title": "Open Editor",
+        "icon": "$(edit)"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "better-leetcode.changeLanguage",
+          "command": "better-leetcode.showProblemStatement",
           "group": "navigation@0",
           "when": "editorTextFocus"
         },
         {
-          "command": "better-leetcode.testSolution",
+          "command": "better-leetcode.changeLanguage",
           "group": "navigation@1",
           "when": "editorTextFocus"
         },
         {
-          "command": "better-leetcode.submitSolution",
+          "command": "better-leetcode.testSolution",
           "group": "navigation@2",
           "when": "editorTextFocus"
+        },
+        {
+          "command": "better-leetcode.submitSolution",
+          "group": "navigation@3",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "better-leetcode.openEditor",
+          "group": "navigation@0",
+          "when": "activeWebviewPanelId == 'problemWebview'"
         }
       ],
       "view/title": [
