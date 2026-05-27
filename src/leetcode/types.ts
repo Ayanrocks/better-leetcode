@@ -74,6 +74,7 @@ export interface ProblemDetails {
   difficulty: 'Easy' | 'Medium' | 'Hard';
   codeSnippets: CodeSnippet[];
   sampleTestCase: string;
+  exampleTestcases?: string;
 }
 
 export interface StudyPlanQuestion {
@@ -126,6 +127,7 @@ export interface SubmissionCheckResult {
   runtime_percentile: number | null;
   code_answer: string[];
   expected_answer: string[];
+  expected_code_answer?: string[];
   code_output: string[];
   std_output_list: string[];
   compile_error: string;

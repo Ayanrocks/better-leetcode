@@ -19,6 +19,7 @@ interface ProblemMetadata {
   lang: string;
   originalSnippet: string;
   sampleTestCase: string;
+  exampleTestcases?: string;
 }
 
 /**
@@ -223,6 +224,7 @@ async function handleOpenProblem(
   authManager: LeetCodeAuthManager,
   context: vscode.ExtensionContext,
   problemSlug: string,
+  preferredLang?: string,
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration('better-leetcode');
   let storagePath = config.get<string>('storagePath');
@@ -248,7 +250,7 @@ async function handleOpenProblem(
     await config.update('storagePath', storagePath, vscode.ConfigurationTarget.Global);
   }
 
-  let defaultLanguage = config.get<string>('defaultLanguage');
+  let defaultLanguage = preferredLang || config.get<string>('defaultLanguage');
   if (defaultLanguage === undefined || defaultLanguage === '') {
     const languages = [
       { label: 'Python3', value: 'python3' },
@@ -344,12 +346,25 @@ async function handleOpenProblem(
     lang: defaultLanguage,
     originalSnippet: codeSnippet,
     sampleTestCase: details.sampleTestCase,
+    exampleTestcases: details.exampleTestcases,
   };
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
 
   const testcasesPath = path.join(problemDir, 'testcases.txt');
-  if (!fs.existsSync(testcasesPath) && details.sampleTestCase !== '') {
-    fs.writeFileSync(testcasesPath, details.sampleTestCase, 'utf-8');
+  const allTestCases = details.exampleTestcases !== undefined && details.exampleTestcases !== ''
+      ? details.exampleTestcases 
+      : details.sampleTestCase;
+
+  if (!fs.existsSync(testcasesPath)) {
+    if (allTestCases !== '') {
+      fs.writeFileSync(testcasesPath, allTestCases, 'utf-8');
+    }
+  } else {
+    // Upgrade old testcases.txt that only have the single sampleTestCase
+    const existing = fs.readFileSync(testcasesPath, 'utf-8');
+    if (details.sampleTestCase && existing.trim() === details.sampleTestCase.trim() && details.exampleTestcases) {
+      fs.writeFileSync(testcasesPath, details.exampleTestcases, 'utf-8');
+    }
   }
 
   // Open Webview in Column One and Code File in Column Two side-by-side
@@ -481,7 +496,13 @@ function normalizeResult(raw: SubmissionCheckResult): SubmissionCheckResult {
     memory_percentile: raw.memory_percentile ?? null,
     runtime_percentile: raw.runtime_percentile ?? null,
     code_answer: raw.code_answer ?? [],
-    expected_answer: raw.expected_answer ?? [],
+    // LeetCode uses 'expected_code_answer' for interpret (test) runs and
+    // 'expected_answer' for submissions. An empty array [] is not nullish,
+    // so ?? alone won't fall through — check length explicitly.
+    expected_answer:
+      (raw.expected_answer && raw.expected_answer.length > 0)
+        ? raw.expected_answer
+        : (raw.expected_code_answer ?? []),
     code_output: raw.code_output ?? [],
     std_output_list: raw.std_output_list ?? [],
     compile_error: raw.compile_error ?? '',
@@ -530,14 +551,29 @@ async function handleTestSolution(
 
   // Extract solution code by stripping boilerplate
   const fileContent = editor.document.getText();
+  
+  const ext = path.extname(filePath).replace('.', '');
+  const extToLangMap: Record<string, string> = {
+    cpp: 'cpp', java: 'java', py: 'python3', js: 'javascript',
+    ts: 'typescript', cs: 'csharp', c: 'c', go: 'golang',
+    kt: 'kotlin', swift: 'swift', rs: 'rust', rb: 'ruby', php: 'php',
+  };
+  const submitLang = extToLangMap[ext] || metadata.lang;
+
   const solutionCode = BoilerplateManager.extractSolutionCode(
-    metadata.lang,
+    submitLang,
     fileContent,
     metadata.originalSnippet,
   );
 
-  // Read test cases
-  const testCases = readTestCases(filePath, metadata.sampleTestCase);
+  // Read test cases and trim to avoid phantom empty cases from trailing newlines
+  let testCases = readTestCases(filePath, metadata.sampleTestCase).trim();
+  if (testCases === '') {
+    testCases = (metadata.exampleTestcases ?? metadata.sampleTestCase).trim();
+  }
+
+  // Ensure the Test Results panel is visible
+  await vscode.commands.executeCommand('better-leetcode.views.testResults.focus');
 
   // Show loading state
   testResultsPanel.showLoading('Testing solution...');
@@ -546,15 +582,28 @@ async function handleTestSolution(
     const interpretResult = await client.interpretSolution(
       metadata.titleSlug,
       metadata.questionId,
-      metadata.lang,
+      submitLang,
       solutionCode,
       testCases,
     );
 
-    const rawResult = await client.checkSubmissionStatus(interpretResult.interpret_id);
-    const result = normalizeResult(rawResult);
+    const checkResult = await client.checkSubmissionStatus(interpretResult.interpret_id);
+    const result = normalizeResult(checkResult);
 
-    const caseCount = Math.max(result.code_answer.length, result.expected_answer.length, 1);
+    // Cap case count at the number of non-empty input lines we actually sent.
+    // LeetCode may return extra phantom entries (e.g. from trailing newlines
+    // or cached responses). Our input line count is always >= the real case count
+    // (multi-param problems have multiple lines per case), so min() safely caps.
+    const inputLineCount = testCases.split('\n').filter(l => l.trim() !== '').length;
+    const responseCaseCount = Math.max(result.code_answer.length, result.expected_answer.length, 1);
+    const caseCount = Math.min(responseCaseCount, inputLineCount);
+
+    // Truncate response arrays to match actual case count
+    result.code_answer = result.code_answer.slice(0, caseCount);
+    result.expected_answer = result.expected_answer.slice(0, caseCount);
+    result.code_output = result.code_output.slice(0, caseCount);
+    result.std_output_list = result.std_output_list.slice(0, caseCount);
+
     const testInputs = parseTestInputs(testCases, caseCount);
 
     testResultsPanel.showResults({
@@ -603,11 +652,23 @@ async function handleSubmitSolution(
 
   // Extract solution code by stripping boilerplate
   const fileContent = editor.document.getText();
+  
+  const ext = path.extname(filePath).replace('.', '');
+  const extToLangMap: Record<string, string> = {
+    cpp: 'cpp', java: 'java', py: 'python3', js: 'javascript',
+    ts: 'typescript', cs: 'csharp', c: 'c', go: 'golang',
+    kt: 'kotlin', swift: 'swift', rs: 'rust', rb: 'ruby', php: 'php',
+  };
+  const submitLang = extToLangMap[ext] || metadata.lang;
+
   const solutionCode = BoilerplateManager.extractSolutionCode(
-    metadata.lang,
+    submitLang,
     fileContent,
     metadata.originalSnippet,
   );
+
+  // Ensure the Test Results panel is visible
+  await vscode.commands.executeCommand('better-leetcode.views.testResults.focus');
 
   // Show loading state
   testResultsPanel.showLoading('Submitting solution...');
@@ -616,7 +677,7 @@ async function handleSubmitSolution(
     const submitResult = await client.submit(
       metadata.titleSlug,
       metadata.questionId,
-      metadata.lang,
+      submitLang,
       solutionCode,
     );
 
@@ -851,7 +912,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   updateLeetCodeEditorContext(vscode.window.activeTextEditor);
 
   // Handle messages from the test results webview
-  testResultsPanel.onMessage((message) => {
+  testResultsPanel.onMessage((message: any) => {
     if (message.command === 'openProblemStatement') {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
@@ -865,7 +926,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         );
         return;
       }
-      void handleOpenProblem(authManager, context, metadata.titleSlug);
+      void handleOpenProblem(authManager, context, metadata.titleSlug, metadata.lang);
+    } else if (message.command === 'addTestCase' && message.input) {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+      const dir = path.dirname(editor.document.uri.fsPath);
+      const testcasesPath = path.join(dir, 'testcases.txt');
+      let existing = '';
+      if (fs.existsSync(testcasesPath)) {
+          existing = fs.readFileSync(testcasesPath, 'utf-8');
+      }
+      const inputStr = message.input as string;
+      const existingLines = existing.split('\n').map(l => l.trim()).filter(l => l !== '');
+      if (!existingLines.includes(inputStr.trim())) {
+          const newContent = existing.trim() !== '' ? existing.trim() + '\n' + inputStr : inputStr;
+          fs.writeFileSync(testcasesPath, newContent, 'utf-8');
+          void vscode.window.showInformationMessage('Test case added to testcases.txt');
+      } else {
+          void vscode.window.showInformationMessage('Test case already exists in testcases.txt');
+      }
     }
   });
 }

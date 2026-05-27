@@ -348,6 +348,7 @@ export class LeetCodeClient {
             code
           }
           sampleTestCase
+          exampleTestcases
         }
       }
     `;

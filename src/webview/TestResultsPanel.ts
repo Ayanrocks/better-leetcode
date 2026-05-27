@@ -40,6 +40,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = 'better-leetcode.views.testResults';
 
   private view: vscode.WebviewView | undefined;
+  private pendingHtml: string | undefined;
   private onMessageCallback: ((message: { command: string }) => void) | undefined;
 
   constructor(private readonly extensionUri: vscode.Uri) {}
@@ -65,7 +66,8 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   ): void {
     this.view = webviewView;
     webviewView.webview.options = { enableScripts: true };
-    webviewView.webview.html = this.getEmptyHtml();
+    webviewView.webview.html = this.pendingHtml || this.getEmptyHtml();
+    this.pendingHtml = undefined;
 
     webviewView.webview.onDidReceiveMessage((message: { command: string }) => {
       if (this.onMessageCallback) {
@@ -82,9 +84,12 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    *   and parsed test inputs.
    */
   public showResults(data: TestResultDisplayData): void {
+    const html = this.getResultsHtml(data);
     if (this.view) {
-      this.view.webview.html = this.getResultsHtml(data);
+      this.view.webview.html = html;
       this.view.show(true);
+    } else {
+      this.pendingHtml = html;
     }
   }
 
@@ -94,9 +99,12 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    * @param message - The loading message to display (e.g., 'Testing solution...').
    */
   public showLoading(message: string): void {
+    const html = this.getLoadingHtml(message);
     if (this.view) {
-      this.view.webview.html = this.getLoadingHtml(message);
+      this.view.webview.html = html;
       this.view.show(true);
+    } else {
+      this.pendingHtml = html;
     }
   }
 
@@ -203,8 +211,6 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    */
   private getResultsHtml(data: TestResultDisplayData): string {
     const { result } = data;
-    const statusColor = this.getStatusColor(result.status_code);
-    const statusIcon = result.run_success ? '✅' : '❌';
 
     const hasError =
       (result.compile_error !== undefined && result.compile_error !== '') ||
@@ -217,16 +223,30 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       '';
 
     // Determine how to count cases.
-    // For test (interpret), use per-case arrays (code_answer, expected_answer).
-    // For submit, LeetCode usually does NOT return per-case arrays — use
-    // total_correct / total_testcases from the result instead.
     const cases = this.buildCases(data);
     const casesJson = JSON.stringify(cases);
 
     const totalCases = this.getTotalCases(data, cases);
     const totalCorrect = this.getTotalCorrect(data, cases);
 
-    const showStats = data.type === 'submit' && result.run_success;
+    // For test (interpret) runs, LeetCode returns status 10 (Accepted) even if test cases fail.
+    // We must manually verify if totalCorrect === totalCases to determine true acceptance.
+    let isAccepted = false;
+    let displayStatusMsg = result.status_msg;
+    let statusColor = this.getStatusColor(result.status_code);
+
+    if (hasError) {
+      isAccepted = false;
+    } else if (data.type === 'test') {
+      isAccepted = totalCases > 0 && totalCorrect === totalCases;
+      displayStatusMsg = isAccepted ? 'Accepted' : 'Wrong Answer';
+      statusColor = isAccepted ? '#2cbb5d' : '#ef4743'; // Green for Accepted, Red for WA
+    } else {
+      isAccepted = result.status_code === 10 || result.status_msg === 'Accepted';
+    }
+
+    const statusIcon = isAccepted ? '✅' : '❌';
+    const showStats = data.type === 'submit' && isAccepted;
     const hasCases = cases.length > 0;
 
     return `<!DOCTYPE html>
@@ -440,6 +460,25 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       opacity: 0.9;
     }
 
+    .add-testcase-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid var(--vscode-button-border, rgba(128,128,128,0.3));
+      border-radius: 4px;
+      background: var(--vscode-button-secondaryBackground, rgba(128,128,128,0.15));
+      color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .add-testcase-btn:hover {
+      background: var(--vscode-button-secondaryHoverBackground, rgba(128,128,128,0.25));
+    }
+    .add-testcase-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     /* ── Single column layout for error-only or no-sidebar ── */
     .container.no-sidebar {
       grid-template-columns: 1fr;
@@ -467,7 +506,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   </style>
 </head>
 <body>
-  <div class="container${(hasError && !hasCases) || (!hasCases && data.type === 'submit' && result.run_success) ? ' no-sidebar' : ''}" id="root">
+  <div class="container${(hasError && !hasCases) || (!hasCases && data.type === 'submit' && isAccepted) ? ' no-sidebar' : ''}" id="root">
     <div class="sidebar">
       <div class="sidebar-header">Test Cases</div>
       ${this.buildCaseListHtmlFromCases(cases, statusColor)}
@@ -476,8 +515,12 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     <div class="main" id="main-content">
       <!-- Status banner -->
       <div class="status-banner">
-        <span class="status-text">${statusIcon} ${this.escapeHtml(result.status_msg)}</span>
-        ${totalCases > 0 ? `<span class="status-count">${totalCorrect} / ${totalCases} test cases passed</span>` : ''}
+        <h2 style="color: ${statusColor}; margin: 0; font-size: 20px;">
+          ${statusIcon} ${this.escapeHtml(displayStatusMsg)}
+        </h2>
+        <span style="opacity: 0.8; font-size: 13px;">
+          ${totalCorrect} / ${totalCases} test cases passed
+        </span>
         <button class="show-problem-btn" id="show-problem-btn" title="Show Problem Statement">📄 Show Problem</button>
       </div>
 
@@ -485,7 +528,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       ${hasError ? this.buildErrorHtml(errorText) : ''}
 
       <div id="case-detail">
-        ${hasCases ? this.buildCaseDetailFromCase(cases[0]) : this.buildSuccessSummary(data)}
+        ${hasCases ? this.buildCaseDetailFromCase(cases[0], data.type === 'submit') : this.buildSuccessSummary(data)}
       </div>
     </div>
   </div>
@@ -515,6 +558,12 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
         });
       }
 
+      window.addTestCase = function(input) {
+        vscode.postMessage({ command: 'addTestCase', input: input });
+        event.target.textContent = '✅ Added';
+        event.target.disabled = true;
+      };
+
       function escHtml(str) {
         if (str === null || str === undefined) return '';
         var div = document.createElement('div');
@@ -524,9 +573,11 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
       function buildDetail(c) {
         var html = '';
+        var isSubmitFailure = ${data.type === 'submit' ? 'true' : 'false'} && !c.passed;
         if (c.input) {
+          var addBtn = isSubmitFailure ? '<button class="add-testcase-btn" onclick="addTestCase(' + escHtml(JSON.stringify(c.input)) + ')">➕ Add to testcases.txt</button>' : '';
           html += '<div class="section">';
-          html += '<div class="section-title">Input</div>';
+          html += '<div class="section-title" style="display:flex; justify-content:space-between; align-items:center;"><span>Input</span>' + addBtn + '</div>';
           html += '<div class="code-block">' + escHtml(c.input) + '</div>';
           html += '</div>';
         }
@@ -624,17 +675,19 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   /**
    * Builds the HTML for a single test case detail from resolved CaseData.
    */
-  private buildCaseDetailFromCase(caseData: CaseData | undefined): string {
+  private buildCaseDetailFromCase(caseData: CaseData | undefined, isSubmit: boolean = false): string {
     if (caseData === undefined) {
       return '';
     }
 
     let html = '';
+    const isSubmitFailure = isSubmit && !caseData.passed;
 
     if (caseData.input !== '') {
+      const addBtn = isSubmitFailure ? `<button class="add-testcase-btn" onclick="addTestCase(${this.escapeHtml(JSON.stringify(caseData.input))})">➕ Add to testcases.txt</button>` : '';
       html += `
         <div class="section">
-          <div class="section-title">Input</div>
+          <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;"><span>Input</span>${addBtn}</div>
           <div class="code-block">${this.escapeHtml(caseData.input)}</div>
         </div>`;
     }
@@ -673,7 +726,8 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    */
   private buildSuccessSummary(data: TestResultDisplayData): string {
     const { result } = data;
-    if (data.type === 'submit' && result.run_success) {
+    const isAccepted = result.status_code === 10 || result.status_msg === 'Accepted';
+    if (data.type === 'submit' && isAccepted) {
       return `<div class="success-summary">
         <div class="icon">🎉</div>
         <p>All test cases passed!</p>
@@ -729,7 +783,8 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     }
 
     // Submit flow — no per-case arrays
-    if (data.type === 'submit' && !result.run_success) {
+    const isAccepted = result.status_code === 10 || result.status_msg === 'Accepted';
+    if (data.type === 'submit' && !isAccepted) {
       // Failed submission: show the first failing case from scalar fields
       const failInput = result.last_testcase ?? '';
       const failExpected = result.expected_output ?? '';
@@ -759,8 +814,8 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    */
   private getTotalCases(data: TestResultDisplayData, cases: CaseData[]): number {
     const { result } = data;
-    // Prefer total_testcases from LeetCode (set for submissions)
-    if (result.total_testcases !== null && result.total_testcases !== undefined) {
+    // Prefer total_testcases from LeetCode for submissions
+    if (data.type === 'submit' && result.total_testcases !== null && result.total_testcases !== undefined) {
       return result.total_testcases;
     }
     return cases.length;
@@ -771,8 +826,8 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    */
   private getTotalCorrect(data: TestResultDisplayData, cases: CaseData[]): number {
     const { result } = data;
-    // Prefer total_correct from LeetCode (set for submissions)
-    if (result.total_correct !== null && result.total_correct !== undefined) {
+    // Prefer total_correct from LeetCode for submissions
+    if (data.type === 'submit' && result.total_correct !== null && result.total_correct !== undefined) {
       return result.total_correct;
     }
     return cases.filter((c) => c.passed).length;
