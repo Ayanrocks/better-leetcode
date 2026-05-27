@@ -73,6 +73,14 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
     return this.problemsCache;
   }
 
+  /**
+   * Ensures problems are loaded (from cache or API) and returns the full list.
+   * Unlike getProblemsList(), this will trigger a fetch if the cache is empty.
+   */
+  public async loadProblemsAsync(): Promise<Problem[]> {
+    return this.loadProblems();
+  }
+
   private async loadProblems(): Promise<Problem[]> {
     if (this.problemsCache.length > 0) {
       return this.problemsCache;
@@ -93,7 +101,12 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
         const cacheData = JSON.parse(fileContent) as ProblemCacheData;
         const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
 
-        if (Date.now() - cacheData.timestamp < oneWeekMs && cacheData.questions.length > 0) {
+        const minExpectedProblems = 500;
+
+        if (
+          Date.now() - cacheData.timestamp < oneWeekMs &&
+          cacheData.questions.length >= minExpectedProblems
+        ) {
           this.problemsCache = cacheData.questions;
           needsFetch = false;
         }
@@ -118,7 +131,7 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
         cancellable: false,
       },
       async () => {
-        const questions = await this.authManager.getClient().getProblems(0, 5000);
+        const questions = await this.authManager.getClient().getAllProblems();
         if (questions.length > 0) {
           this.problemsCache = questions;
           const cacheData: ProblemCacheData = {

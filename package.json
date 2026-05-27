@@ -89,10 +89,20 @@
         "command": "better-leetcode.submitSolution",
         "title": "Submit",
         "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "better-leetcode.changeLanguage",
+        "title": "Change Language",
+        "icon": "$(symbol-enum)"
       }
     ],
     "menus": {
       "editor/title": [
+        {
+          "command": "better-leetcode.changeLanguage",
+          "group": "navigation@0",
+          "when": "editorTextFocus"
+        },
         {
           "command": "better-leetcode.testSolution",
           "group": "navigation@1",

@@ -246,14 +246,87 @@ export class LeetCodeClient {
       limit,
       filters: {},
     };
-    const data = await this.query<{ problemsetQuestionList: { questions: Problem[] } }>(
-      queryStr,
-      variables,
-    );
+    const data = await this.query<{
+      problemsetQuestionList: { total: number; questions: Problem[] };
+    }>(queryStr, variables);
     if (data === undefined || data.problemsetQuestionList === undefined) {
       return [];
     }
     return data.problemsetQuestionList.questions;
+  }
+
+  /**
+   * Fetches the complete problem catalog by paginating through all results.
+   * LeetCode's API caps responses at ~100 problems per request, so this
+   * method fetches in batches until all problems are retrieved.
+   *
+   * @param batchSize - Number of problems to request per batch (default: 100).
+   * @returns The full list of all problems on the platform.
+   */
+  public async getAllProblems(batchSize: number = 100): Promise<Problem[]> {
+    const queryStr = `
+      query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
+        problemsetQuestionList: questionList(
+          categorySlug: $categorySlug
+          limit: $limit
+          skip: $skip
+          filters: $filters
+        ) {
+          total: totalNum
+          questions: data {
+            frontendQuestionId: questionFrontendId
+            title
+            titleSlug
+            difficulty
+            acRate
+            paidOnly: isPaidOnly
+            status
+            topicTags {
+              name
+              slug
+            }
+          }
+        }
+      }
+    `;
+
+    // First batch — learn total count
+    const firstData = await this.query<{
+      problemsetQuestionList: { total: number; questions: Problem[] };
+    }>(queryStr, { categorySlug: '', skip: 0, limit: batchSize, filters: {} });
+
+    if (firstData === undefined || firstData.problemsetQuestionList === undefined) {
+      return [];
+    }
+
+    const total = firstData.problemsetQuestionList.total;
+    const allProblems: Problem[] = [...firstData.problemsetQuestionList.questions];
+
+    // Fetch remaining pages concurrently in batches
+    const remainingPages: number[] = [];
+    for (let skip = batchSize; skip < total; skip += batchSize) {
+      remainingPages.push(skip);
+    }
+
+    if (remainingPages.length > 0) {
+      const pageResults = await Promise.all(
+        remainingPages.map(async (skip) => {
+          const data = await this.query<{
+            problemsetQuestionList: { total: number; questions: Problem[] };
+          }>(queryStr, { categorySlug: '', skip, limit: batchSize, filters: {} });
+          if (data === undefined || data.problemsetQuestionList === undefined) {
+            return [];
+          }
+          return data.problemsetQuestionList.questions;
+        }),
+      );
+
+      for (const pageProblems of pageResults) {
+        allProblems.push(...pageProblems);
+      }
+    }
+
+    return allProblems;
   }
 
   /**
@@ -426,9 +499,7 @@ export class LeetCodeClient {
    * @returns The complete submission result with status, runtime, memory, etc.
    * @throws Error if polling exceeds the maximum number of attempts.
    */
-  public async checkSubmissionStatus(
-    submissionId: string,
-  ): Promise<SubmissionCheckResult> {
+  public async checkSubmissionStatus(submissionId: string): Promise<SubmissionCheckResult> {
     const url = `${this.endpoint}/submissions/detail/${submissionId}/check/`;
     const headers = this.buildRestHeaders();
     const maxAttempts = 30;
@@ -450,8 +521,6 @@ export class LeetCodeClient {
       await this.delay(pollIntervalMs);
     }
 
-    throw new Error(
-      'Submission check timed out after 30 attempts. Please try again.',
-    );
+    throw new Error('Submission check timed out after 30 attempts. Please try again.');
   }
 }

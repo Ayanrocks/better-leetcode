@@ -40,8 +40,19 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   public static readonly viewType = 'better-leetcode.views.testResults';
 
   private view: vscode.WebviewView | undefined;
+  private onMessageCallback: ((message: { command: string }) => void) | undefined;
 
   constructor(private readonly extensionUri: vscode.Uri) {}
+
+  /**
+   * Registers a callback to handle messages from the webview.
+   * Used to relay actions like "open problem statement" back to the extension.
+   *
+   * @param callback - The message handler function.
+   */
+  public onMessage(callback: (message: { command: string }) => void): void {
+    this.onMessageCallback = callback;
+  }
 
   /**
    * Called by VS Code when the webview view is first made visible.
@@ -55,6 +66,12 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     this.view = webviewView;
     webviewView.webview.options = { enableScripts: true };
     webviewView.webview.html = this.getEmptyHtml();
+
+    webviewView.webview.onDidReceiveMessage((message: { command: string }) => {
+      if (this.onMessageCallback) {
+        this.onMessageCallback(message);
+      }
+    });
   }
 
   /**
@@ -192,8 +209,12 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     const hasError =
       (result.compile_error !== undefined && result.compile_error !== '') ||
       (result.runtime_error !== undefined && result.runtime_error !== '');
-    const errorText = result.full_compile_error || result.full_runtime_error ||
-      result.compile_error || result.runtime_error || '';
+    const errorText =
+      result.full_compile_error ||
+      result.full_runtime_error ||
+      result.compile_error ||
+      result.runtime_error ||
+      '';
 
     // Determine how to count cases.
     // For test (interpret), use per-case arrays (code_answer, expected_answer).
@@ -215,6 +236,24 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    .show-problem-btn {
+      margin-left: auto;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--vscode-button-border, rgba(128,128,128,0.3));
+      border-radius: 4px;
+      background: var(--vscode-button-secondaryBackground, rgba(128,128,128,0.15));
+      color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+      white-space: nowrap;
+    }
+    .show-problem-btn:hover {
+      background: var(--vscode-button-secondaryHoverBackground, rgba(128,128,128,0.25));
+      border-color: var(--vscode-focusBorder, rgba(128,128,128,0.5));
+    }
 
     body {
       font-family: var(--vscode-font-family);
@@ -439,6 +478,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       <div class="status-banner">
         <span class="status-text">${statusIcon} ${this.escapeHtml(result.status_msg)}</span>
         ${totalCases > 0 ? `<span class="status-count">${totalCorrect} / ${totalCases} test cases passed</span>` : ''}
+        <button class="show-problem-btn" id="show-problem-btn" title="Show Problem Statement">📄 Show Problem</button>
       </div>
 
       ${showStats ? this.buildStatsHtml(result) : ''}
@@ -452,7 +492,8 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   <script>
     (function() {
-      const cases = ${casesJson};
+      var vscode = acquireVsCodeApi();
+      var cases = ${casesJson};
 
       document.querySelectorAll('.case-item').forEach(function(item, index) {
         item.addEventListener('click', function() {
@@ -466,6 +507,13 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
           }
         });
       });
+
+      var showProblemBtn = document.getElementById('show-problem-btn');
+      if (showProblemBtn) {
+        showProblemBtn.addEventListener('click', function() {
+          vscode.postMessage({ command: 'openProblemStatement' });
+        });
+      }
 
       function escHtml(str) {
         if (str === null || str === undefined) return '';
@@ -514,10 +562,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   /**
    * Builds the HTML for the sidebar test case list items from resolved case data.
    */
-  private buildCaseListHtmlFromCases(
-    cases: CaseData[],
-    statusColor: string,
-  ): string {
+  private buildCaseListHtmlFromCases(cases: CaseData[], _statusColor: string): string {
     const items: string[] = [];
     for (let i = 0; i < cases.length; i++) {
       const caseData = cases[i];
@@ -529,9 +574,9 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
       items.push(
         `<div class="case-item${activeClass}" data-index="${i}">` +
-        `<span class="case-dot ${dotClass}"></span>` +
-        `<span class="case-label">Case ${i + 1}</span>` +
-        `</div>`,
+          `<span class="case-dot ${dotClass}"></span>` +
+          `<span class="case-label">Case ${i + 1}</span>` +
+          `</div>`,
       );
     }
     return items.join('\n');
@@ -660,11 +705,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
     if (hasPerCaseData) {
       // Test (interpret) flow — build from parallel arrays
-      const count = Math.max(
-        codeAnswer.length,
-        expectedAnswer.length,
-        testInputs.length,
-      );
+      const count = Math.max(codeAnswer.length, expectedAnswer.length, testInputs.length);
 
       const cases: CaseData[] = [];
       for (let i = 0; i < count; i++) {
@@ -693,18 +734,20 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       const failInput = result.last_testcase ?? '';
       const failExpected = result.expected_output ?? '';
       // code_output may contain the actual output for the failing case
-      const failOutput = codeOutput.length > 0 ? codeOutput[0] ?? '' : '';
-      const failStdout = stdOutputList.length > 0 ? stdOutputList[0] ?? '' : '';
+      const failOutput = codeOutput.length > 0 ? (codeOutput[0] ?? '') : '';
+      const failStdout = stdOutputList.length > 0 ? (stdOutputList[0] ?? '') : '';
 
-      return [{
-        input: failInput,
-        output: failOutput,
-        expected: failExpected,
-        stdout: failStdout,
-        passed: false,
-        hasOutput: failOutput !== '',
-        hasExpected: failExpected !== '',
-      }];
+      return [
+        {
+          input: failInput,
+          output: failOutput,
+          expected: failExpected,
+          stdout: failStdout,
+          passed: false,
+          hasOutput: failOutput !== '',
+          hasExpected: failExpected !== '',
+        },
+      ];
     }
 
     // Successful submission with no per-case data — nothing to show per case
@@ -742,9 +785,12 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    */
   private getStatusColor(statusCode: number): string {
     switch (statusCode) {
-      case 10: return '#2cbb5d'; // Accepted
-      case 20: return '#ffa116'; // Compile Error
-      default: return '#ef4743'; // Wrong Answer, Runtime Error, TLE, etc.
+      case 10:
+        return '#2cbb5d'; // Accepted
+      case 20:
+        return '#ffa116'; // Compile Error
+      default:
+        return '#ef4743'; // Wrong Answer, Runtime Error, TLE, etc.
     }
   }
 

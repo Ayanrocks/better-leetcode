@@ -65,12 +65,7 @@ const BOILERPLATE_CONFIGS: Record<string, BoilerplateConfig> = {
     suffix: '',
   },
   cpp: {
-    prefix: [
-      '#include <bits/stdc++.h>',
-      'using namespace std;',
-      '',
-      '',
-    ].join('\n'),
+    prefix: ['#include <bits/stdc++.h>', 'using namespace std;', '', ''].join('\n'),
     suffix: '',
   },
   csharp: {
@@ -167,11 +162,7 @@ export class BoilerplateManager {
    *   reliable boundary detection.
    * @returns The extracted solution code suitable for LeetCode submission.
    */
-  static extractSolutionCode(
-    lang: string,
-    fileContent: string,
-    originalSnippet?: string,
-  ): string {
+  static extractSolutionCode(lang: string, fileContent: string, originalSnippet?: string): string {
     const config = BoilerplateManager.getConfig(lang);
 
     // Strategy 1: Use the original snippet's first line to find the solution start

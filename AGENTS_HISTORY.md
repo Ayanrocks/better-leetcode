@@ -1,5 +1,23 @@
 # Agent Work History
 
+## Session: 2026-05-27 — Show Problem Button, Language Switcher, Search Fix
+
+### What was done
+1. **Open Problem Statement button** — Added a "📄 Show Problem" button to the Test Results panel status banner. Uses `acquireVsCodeApi().postMessage()` to send an `openProblemStatement` command back to the extension host, which re-opens the problem description webview via `handleOpenProblem()`. Added `onMessage` callback pattern to `TestResultsPanel`.
+2. **Language Switcher** — Added `better-leetcode.changeLanguage` command. Appears in the editor title bar (with `$(symbol-enum)` icon). Reads `.metadata.json` from the current file's directory, fetches all available code snippets for the problem, shows a QuickPick with all supported languages (marking the current one), creates the new language file with proper boilerplate, updates metadata, and opens the new file.
+3. **Search fix (all ~4k problems)** — Search previously called `getProblemsList()` which only returns the synchronous in-memory cache. If the sidebar tree hadn't been expanded yet, this returned an empty array. Changed to `await loadProblemsAsync()` which triggers fetching from cache/API if needed. Added `loadProblemsAsync()` public method to `AllProblemsTreeDataProvider`.
+
+### Files modified
+- `src/webview/TestResultsPanel.ts` — Show Problem button, webview messaging, statusColor lint fix
+- `src/extension.ts` — `handleChangeLanguage()`, async search, webview message handler
+- `src/tree/AllProblemsTreeDataProvider.ts` — `loadProblemsAsync()` public method
+- `package.json` — `changeLanguage` command + editor/title menu entry
+
+### Build Status
+- ✅ Compiles successfully (esbuild, 77.0kb)
+- ✅ Lint passes (0 errors)
+
+
 ## Session: 2026-05-27 — Fix Test Results Panel Display
 
 ### What was done

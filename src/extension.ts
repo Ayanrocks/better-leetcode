@@ -361,12 +361,14 @@ async function handleOpenProblem(
 
 /**
  * Handles the fuzzy search command.
+ * Awaits full problem catalog loading to search all ~4k problems,
+ * not just the subset that's been lazily loaded into the tree view.
  */
 async function handleSearch(allProblemsProvider: AllProblemsTreeDataProvider): Promise<void> {
-  const problems = allProblemsProvider.getProblemsList();
+  const problems = await allProblemsProvider.loadProblemsAsync();
   if (problems.length === 0) {
     void vscode.window.showInformationMessage(
-      'The problem catalog is loading. Please wait a moment.',
+      'The problem catalog is empty. Please check your connection and try again.',
     );
     return;
   }
@@ -552,11 +554,7 @@ async function handleTestSolution(
     const rawResult = await client.checkSubmissionStatus(interpretResult.interpret_id);
     const result = normalizeResult(rawResult);
 
-    const caseCount = Math.max(
-      result.code_answer.length,
-      result.expected_answer.length,
-      1,
-    );
+    const caseCount = Math.max(result.code_answer.length, result.expected_answer.length, 1);
     const testInputs = parseTestInputs(testCases, caseCount);
 
     testResultsPanel.showResults({
@@ -622,9 +620,7 @@ async function handleSubmitSolution(
       solutionCode,
     );
 
-    const rawResult = await client.checkSubmissionStatus(
-      String(submitResult.submission_id),
-    );
+    const rawResult = await client.checkSubmissionStatus(String(submitResult.submission_id));
     const result = normalizeResult(rawResult);
 
     // For submissions, test inputs come from the last_testcase field if available
@@ -642,6 +638,125 @@ async function handleSubmitSolution(
     const errMsg = err instanceof Error ? err.message : String(err);
     void vscode.window.showErrorMessage(`Submit failed: ${errMsg}`);
   }
+}
+
+/**
+ * Handles the Change Language command.
+ * Reads the current problem metadata, fetches available code snippets,
+ * lets the user pick a new language, and creates/opens the new solution file.
+ *
+ * @param authManager - The LeetCode auth manager.
+ * @param context - The extension context for storage URI access.
+ */
+async function handleChangeLanguage(
+  authManager: LeetCodeAuthManager,
+  _context: vscode.ExtensionContext,
+): Promise<void> {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    void vscode.window.showErrorMessage('No active editor. Open a solution file first.');
+    return;
+  }
+
+  const filePath = editor.document.uri.fsPath;
+  const metadata = readProblemMetadata(filePath);
+  if (metadata === null) {
+    void vscode.window.showErrorMessage(
+      'Could not find problem metadata. Open a problem from the sidebar first.',
+    );
+    return;
+  }
+
+  let details: ProblemDetails;
+  try {
+    details = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Fetching available languages...',
+        cancellable: false,
+      },
+      async () => {
+        return await authManager.getClient().getProblemDetails(metadata.titleSlug);
+      },
+    );
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    void vscode.window.showErrorMessage(`Failed to fetch problem details: ${errMsg}`);
+    return;
+  }
+
+  if (details.codeSnippets.length === 0) {
+    void vscode.window.showWarningMessage('No code snippets available for this problem.');
+    return;
+  }
+
+  const langItems = details.codeSnippets.map((snippet) => ({
+    label: snippet.lang,
+    description: snippet.langSlug === metadata.lang ? '(current)' : '',
+    value: snippet.langSlug,
+  }));
+
+  const selected = await vscode.window.showQuickPick(langItems, {
+    placeHolder: `Current: ${metadata.lang} — Select a new language`,
+    matchOnDescription: true,
+  });
+
+  if (!selected || selected.value === metadata.lang) {
+    return;
+  }
+
+  const newLang = selected.value;
+  const config = vscode.workspace.getConfiguration('better-leetcode');
+  const storagePath = config.get<string>('storagePath');
+
+  if (storagePath === undefined || storagePath === '') {
+    void vscode.window.showErrorMessage('Storage path not configured.');
+    return;
+  }
+
+  const extMap: Record<string, string> = {
+    cpp: 'cpp',
+    java: 'java',
+    python3: 'py',
+    python: 'py',
+    javascript: 'js',
+    typescript: 'ts',
+    csharp: 'cs',
+    c: 'c',
+    golang: 'go',
+    kotlin: 'kt',
+    swift: 'swift',
+    rust: 'rs',
+    ruby: 'rb',
+    php: 'php',
+  };
+
+  const ext = extMap[newLang] !== undefined ? extMap[newLang] : 'txt';
+  const problemDir = path.dirname(filePath);
+  const newFilePath = path.join(problemDir, `main.${ext}`);
+
+  const snippet = details.codeSnippets.find((s) => s.langSlug === newLang);
+  const codeSnippet = snippet !== undefined ? snippet.code : '';
+
+  if (!fs.existsSync(newFilePath)) {
+    const wrappedCode = BoilerplateManager.wrapWithBoilerplate(newLang, codeSnippet);
+    fs.writeFileSync(newFilePath, wrappedCode, 'utf-8');
+  }
+
+  // Update metadata with new language
+  const metadataPath = path.join(problemDir, '.metadata.json');
+  const updatedMetadata: ProblemMetadata = {
+    ...metadata,
+    lang: newLang,
+    originalSnippet: codeSnippet,
+  };
+  fs.writeFileSync(metadataPath, JSON.stringify(updatedMetadata, null, 2), 'utf-8');
+
+  // Open the new file
+  const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(newFilePath));
+  await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
+
+  void vscode.window.showInformationMessage(`Language switched to ${selected.label}.`);
 }
 
 /**
@@ -675,10 +790,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Register Test Results Panel
   const testResultsPanel = new TestResultsPanel(context.extensionUri);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      TestResultsPanel.viewType,
-      testResultsPanel,
-    ),
+    vscode.window.registerWebviewViewProvider(TestResultsPanel.viewType, testResultsPanel),
   );
 
   // Register Commands
@@ -692,6 +804,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('better-leetcode.search', () => {
       void handleSearch(allProblemsProvider);
     }),
+    vscode.commands.registerCommand('better-leetcode.changeLanguage', () => {
+      void handleChangeLanguage(authManager, context);
+    }),
     vscode.commands.registerCommand('better-leetcode.testSolution', () => {
       void handleTestSolution(authManager, testResultsPanel);
     }),
@@ -704,6 +819,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       studyListsProvider.refresh();
     }),
   );
+
+  // Handle messages from the test results webview
+  testResultsPanel.onMessage((message) => {
+    if (message.command === 'openProblemStatement') {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      const filePath = editor.document.uri.fsPath;
+      const metadata = readProblemMetadata(filePath);
+      if (metadata === null) {
+        void vscode.window.showWarningMessage(
+          'Could not find problem metadata for the current file.',
+        );
+        return;
+      }
+      void handleOpenProblem(authManager, context, metadata.titleSlug);
+    }
+  });
 }
 
 /**
