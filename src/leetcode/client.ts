@@ -349,6 +349,7 @@ export class LeetCodeClient {
           }
           sampleTestCase
           exampleTestcases
+          metaData
         }
       }
     `;

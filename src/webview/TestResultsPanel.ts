@@ -488,6 +488,30 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       display: none;
     }
 
+    /* Per-case status label in sidebar */
+    .case-status {
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: auto;
+      letter-spacing: 0.3px;
+    }
+
+    .case-status.pass { color: #2cbb5d; }
+    .case-status.fail { color: #ef4743; }
+
+    /* Per-case status header in detail area */
+    .case-detail-status {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .case-detail-status.pass { color: #2cbb5d; }
+    .case-detail-status.fail { color: #ef4743; }
+
     /* Success summary shown when no per-case data is available */
     .success-summary {
       text-align: center;
@@ -574,6 +598,12 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       function buildDetail(c) {
         var html = '';
         var isSubmitFailure = ${data.type === 'submit' ? 'true' : 'false'} && !c.passed;
+        // Per-case status header
+        if (c.passed) {
+          html += '<div class="case-detail-status pass">✅ Accepted</div>';
+        } else {
+          html += '<div class="case-detail-status fail">❌ Wrong Answer</div>';
+        }
         if (c.input) {
           var addBtn = isSubmitFailure ? '<button class="add-testcase-btn" onclick="addTestCase(' + escHtml(JSON.stringify(c.input)) + ')">➕ Add to testcases.txt</button>' : '';
           html += '<div class="section">';
@@ -622,11 +652,14 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       }
       const dotClass = caseData.passed ? 'pass' : 'fail';
       const activeClass = i === 0 ? ' active' : '';
+      const statusText = caseData.passed ? 'Accepted' : 'Wrong';
+      const statusClass = caseData.passed ? 'pass' : 'fail';
 
       items.push(
         `<div class="case-item${activeClass}" data-index="${i}">` +
           `<span class="case-dot ${dotClass}"></span>` +
           `<span class="case-label">Case ${i + 1}</span>` +
+          `<span class="case-status ${statusClass}">${statusText}</span>` +
           `</div>`,
       );
     }
@@ -682,6 +715,13 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
     let html = '';
     const isSubmitFailure = isSubmit && !caseData.passed;
+
+    // Per-case status header
+    if (caseData.passed) {
+      html += `<div class="case-detail-status pass">✅ Accepted</div>`;
+    } else {
+      html += `<div class="case-detail-status fail">❌ Wrong Answer</div>`;
+    }
 
     if (caseData.input !== '') {
       const addBtn = isSubmitFailure ? `<button class="add-testcase-btn" onclick="addTestCase(${this.escapeHtml(JSON.stringify(caseData.input))})">➕ Add to testcases.txt</button>` : '';

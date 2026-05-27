@@ -75,6 +75,7 @@ export interface ProblemDetails {
   codeSnippets: CodeSnippet[];
   sampleTestCase: string;
   exampleTestcases?: string;
+  metaData?: string;
 }
 
 export interface StudyPlanQuestion {
@@ -137,4 +138,14 @@ export interface SubmissionCheckResult {
   input_formatted: string;
   expected_output: string;
   last_testcase: string;
+}
+
+/**
+ * Parsed structure of LeetCode's `metaData` JSON string.
+ * Contains the function signature metadata including parameter names/types.
+ */
+export interface ProblemMetaData {
+  name: string;
+  params: Array<{ name: string; type: string }>;
+  return: { type: string };
 }

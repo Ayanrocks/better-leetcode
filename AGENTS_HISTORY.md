@@ -1,5 +1,23 @@
 # Agent Work History
 
+## Session: 2026-05-28 — Testcase Parsing Rewrite & Per-Case Status
+
+### What was done
+1. **Deterministic testcase parsing** — Replaced heuristic `parseTestInputs` (which guessed lines-per-case from response array length) with deterministic parsing using `inputLineCount` stored in `.metadata.json`. Each test case now groups exactly N lines based on the function's parameter count.
+2. **inputLineCount resolution chain** — Added `resolveInputLineCount()` with priority: global cache → `metaData.params.length` → HTML content parsing → default 1. The `metaData` field (JSON with function signature) is now fetched from LeetCode's GraphQL API.
+3. **Global file cache** — `inputLineCount.json` stored at extension's `globalStorageUri` path. Since parameter counts never change, each problem is resolved once and cached permanently.
+4. **HTML fallback** — When `metaData` is empty, counts `<strong>Input:</strong>` occurrences in problem HTML and divides total `exampleTestcases` lines to derive lines-per-case.
+5. **Per-case status labels** — Sidebar now shows "Accepted"/"Wrong" text next to each case dot. Detail area shows `✅ Accepted` or `❌ Wrong Answer` header per case, so clicking a passing case no longer confusingly shows the global "Wrong Answer" banner.
+
+### Files modified
+- `src/leetcode/types.ts` — Added `metaData` to `ProblemDetails`, new `ProblemMetaData` interface
+- `src/leetcode/client.ts` — Added `metaData` to GraphQL query
+- `src/extension.ts` — Cache helpers, `resolveInputLineCount`, rewritten `parseTestInputs`, updated `handleOpenProblem`/`handleTestSolution`
+- `src/webview/TestResultsPanel.ts` — Per-case status CSS, sidebar labels, detail header, JS `buildDetail`
+
+### Build Status
+- ✅ Compiles successfully (esbuild, 89.6kb)
+
 ## Session: 2026-05-27 — Show Problem Button, Language Switcher, Search Fix
 
 ### What was done

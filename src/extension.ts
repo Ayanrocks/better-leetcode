@@ -8,7 +8,7 @@ import { AllProblemsTreeDataProvider } from './tree/AllProblemsTreeDataProvider'
 import { StudyListsTreeDataProvider } from './tree/StudyListsTreeDataProvider';
 import { ProblemWebview } from './webview/ProblemWebview';
 import { TestResultsPanel } from './webview/TestResultsPanel';
-import { ProblemDetails, SubmissionCheckResult } from './leetcode/types';
+import { ProblemDetails, ProblemMetaData, SubmissionCheckResult } from './leetcode/types';
 
 /**
  * Metadata stored alongside each solution file for round-trip boilerplate handling.
@@ -20,6 +20,7 @@ interface ProblemMetadata {
   originalSnippet: string;
   sampleTestCase: string;
   exampleTestcases?: string;
+  inputLineCount: number;
 }
 
 /**
@@ -338,6 +339,10 @@ async function handleOpenProblem(
     fs.writeFileSync(codeFilePath, wrappedCode, 'utf-8');
   }
 
+  // Resolve inputLineCount using priority chain: cache → metaData → HTML → default 1
+  const globalStoragePath = context.globalStorageUri.fsPath;
+  const inputLineCount = resolveInputLineCount(globalStoragePath, details);
+
   // Store metadata for boilerplate extraction during test/submit
   const metadataPath = path.join(problemDir, '.metadata.json');
   const metadata: ProblemMetadata = {
@@ -346,7 +351,8 @@ async function handleOpenProblem(
     lang: defaultLanguage,
     originalSnippet: codeSnippet,
     sampleTestCase: details.sampleTestCase,
-    exampleTestcases: details.exampleTestcases,
+    exampleTestcases: details.exampleTestcases ?? '',
+    inputLineCount,
   };
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
 
@@ -446,30 +452,189 @@ function readTestCases(filePath: string, fallback: string): string {
   return fallback;
 }
 
+// ── Global inputLineCount Cache ──────────────────────────────────────
+
+/**
+ * Path to the global inputLineCount cache file.
+ * Stored at the extension's global storage path so it persists across sessions.
+ */
+function getInputLineCountCachePath(globalStoragePath: string): string {
+  return path.join(globalStoragePath, 'inputLineCount.json');
+}
+
+/**
+ * Reads the global inputLineCount cache.
+ *
+ * @param globalStoragePath - Extension's global storage path.
+ * @returns A map of titleSlug → inputLineCount.
+ */
+function readInputLineCountCache(globalStoragePath: string): Record<string, number> {
+  const cachePath = getInputLineCountCachePath(globalStoragePath);
+  if (!fs.existsSync(cachePath)) {
+    return {};
+  }
+  try {
+    const raw = fs.readFileSync(cachePath, 'utf-8');
+    return JSON.parse(raw) as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Writes a single entry to the global inputLineCount cache.
+ *
+ * @param globalStoragePath - Extension's global storage path.
+ * @param slug - The problem's titleSlug.
+ * @param count - The resolved inputLineCount.
+ */
+function writeInputLineCountCache(
+  globalStoragePath: string,
+  slug: string,
+  count: number,
+): void {
+  if (!fs.existsSync(globalStoragePath)) {
+    fs.mkdirSync(globalStoragePath, { recursive: true });
+  }
+  const cache = readInputLineCountCache(globalStoragePath);
+  cache[slug] = count;
+  const cachePath = getInputLineCountCachePath(globalStoragePath);
+  fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2), 'utf-8');
+}
+
+// ── inputLineCount Resolution ───────────────────────────────────────
+
+/**
+ * Attempts to derive inputLineCount from LeetCode's metaData JSON string.
+ * Returns the number of function parameters, or null if unparseable.
+ *
+ * @param metaDataStr - The raw metaData JSON string from the API.
+ */
+function deriveFromMetaData(metaDataStr: string | undefined): number | null {
+  if (metaDataStr === undefined || metaDataStr === '') {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(metaDataStr) as ProblemMetaData;
+    if (
+      parsed.params !== undefined &&
+      Array.isArray(parsed.params) &&
+      parsed.params.length > 0
+    ) {
+      return parsed.params.length;
+    }
+  } catch {
+    // Malformed JSON — fall through
+  }
+  return null;
+}
+
+/**
+ * Attempts to derive inputLineCount by parsing the problem's HTML content.
+ * Extracts example input blocks from <pre> tags and counts lines per case.
+ *
+ * @param content - The problem's HTML content string.
+ * @param exampleTestcases - The raw exampleTestcases string from the API.
+ */
+function deriveFromHtmlContent(
+  content: string | undefined,
+  exampleTestcases: string | undefined,
+): number | null {
+  if (
+    content === undefined ||
+    content === '' ||
+    exampleTestcases === undefined ||
+    exampleTestcases === ''
+  ) {
+    return null;
+  }
+
+  // Count non-empty lines in exampleTestcases
+  const totalInputLines = exampleTestcases
+    .split('\n')
+    .filter((l) => l.trim() !== '').length;
+  if (totalInputLines === 0) {
+    return null;
+  }
+
+  // Count example cases from the HTML by matching <strong>Input:</strong> occurrences
+  const inputMatches = content.match(/<strong>Input:?<\/strong>/gi);
+  const exampleCount = inputMatches !== null ? inputMatches.length : 0;
+  if (exampleCount === 0) {
+    return null;
+  }
+
+  // Lines per case = total input lines / number of examples
+  const linesPerCase = Math.floor(totalInputLines / exampleCount);
+  if (linesPerCase >= 1) {
+    return linesPerCase;
+  }
+
+  return null;
+}
+
+/**
+ * Resolves the inputLineCount for a problem using the priority chain:
+ * 1. Global cache (instant, no computation)
+ * 2. metaData.params.length (API field)
+ * 3. HTML content parsing (fallback)
+ * 4. Default: 1
+ *
+ * @param globalStoragePath - Extension's global storage path for the cache.
+ * @param details - The fetched problem details.
+ * @returns The resolved inputLineCount.
+ */
+function resolveInputLineCount(
+  globalStoragePath: string,
+  details: ProblemDetails,
+): number {
+  // 1. Check global cache
+  const cache = readInputLineCountCache(globalStoragePath);
+  const cached = cache[details.titleSlug];
+  if (cached !== undefined && cached >= 1) {
+    return cached;
+  }
+
+  // 2. Try metaData
+  const fromMetaData = deriveFromMetaData(details.metaData);
+  if (fromMetaData !== null) {
+    writeInputLineCountCache(globalStoragePath, details.titleSlug, fromMetaData);
+    return fromMetaData;
+  }
+
+  // 3. Try HTML content parsing
+  const fromHtml = deriveFromHtmlContent(
+    details.content,
+    details.exampleTestcases,
+  );
+  if (fromHtml !== null) {
+    writeInputLineCountCache(globalStoragePath, details.titleSlug, fromHtml);
+    return fromHtml;
+  }
+
+  // 4. Default
+  const defaultCount = 1;
+  writeInputLineCountCache(globalStoragePath, details.titleSlug, defaultCount);
+  return defaultCount;
+}
+
 /**
  * Splits a test case string into per-case groups for display.
- * LeetCode test cases are newline-separated; each "case" consists of
- * one or more lines depending on the problem's parameter count.
- * Since we can't easily determine parameter count, we treat each line
- * as a separate input entry and group them by the test case count.
+ * Each test case consists of exactly `linesPerCase` non-empty lines.
  *
  * @param testCaseStr - The raw test case string (newline-separated).
- * @param caseCount - The number of test cases (from result arrays).
+ * @param linesPerCase - Number of input lines per test case (from inputLineCount).
  * @returns An array of test input strings, one per case.
  */
-function parseTestInputs(testCaseStr: string, caseCount: number): string[] {
+function parseTestInputs(testCaseStr: string, linesPerCase: number): string[] {
   const lines = testCaseStr.split('\n').filter((line) => line.trim() !== '');
-  if (caseCount <= 0 || lines.length === 0) {
+  if (linesPerCase <= 0 || lines.length === 0) {
     return [];
   }
 
-  const linesPerCase = Math.max(1, Math.floor(lines.length / caseCount));
   const inputs: string[] = [];
-
-  for (let i = 0; i < caseCount; i++) {
-    const start = i * linesPerCase;
-    const end = Math.min(start + linesPerCase, lines.length);
-    inputs.push(lines.slice(start, end).join('\n'));
+  for (let i = 0; i + linesPerCase <= lines.length; i += linesPerCase) {
+    inputs.push(lines.slice(i, i + linesPerCase).join('\n'));
   }
 
   return inputs;
@@ -590,21 +755,17 @@ async function handleTestSolution(
     const checkResult = await client.checkSubmissionStatus(interpretResult.interpret_id);
     const result = normalizeResult(checkResult);
 
-    // Cap case count at the number of non-empty input lines we actually sent.
-    // LeetCode may return extra phantom entries (e.g. from trailing newlines
-    // or cached responses). Our input line count is always >= the real case count
-    // (multi-param problems have multiple lines per case), so min() safely caps.
-    const inputLineCount = testCases.split('\n').filter(l => l.trim() !== '').length;
-    const responseCaseCount = Math.max(result.code_answer.length, result.expected_answer.length, 1);
-    const caseCount = Math.min(responseCaseCount, inputLineCount);
+    // Use inputLineCount from metadata to deterministically parse test inputs.
+    // Backward compat: old .metadata.json files may not have inputLineCount, default to 1.
+    const linesPerCase = metadata.inputLineCount ?? 1;
+    const testInputs = parseTestInputs(testCases, linesPerCase);
+    const caseCount = testInputs.length;
 
     // Truncate response arrays to match actual case count
     result.code_answer = result.code_answer.slice(0, caseCount);
     result.expected_answer = result.expected_answer.slice(0, caseCount);
     result.code_output = result.code_output.slice(0, caseCount);
     result.std_output_list = result.std_output_list.slice(0, caseCount);
-
-    const testInputs = parseTestInputs(testCases, caseCount);
 
     testResultsPanel.showResults({
       type: 'test',
