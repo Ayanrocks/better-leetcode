@@ -1,5 +1,33 @@
 # Agent Work History
 
+## Session: 2026-05-30 — Logging System with File Rotation
+
+### What was done
+1. **Logger module** — Created `src/logger/` with singleton `Logger` class. Dual-sink output: VS Code OutputChannel ("Better LeetCode") + rotating file writer at `~/.better-leetcode/logs/`.
+2. **File rotation** — Size-based: 5 MB per file, 5 rotated files retained (`app.log` → `app.1.log` → `app.5.log`). Oldest file pruned on overflow.
+3. **Redaction** — Automatically strips `LEETCODE_SESSION=...` and `csrftoken=...` values from all log output.
+4. **Log levels** — `DEBUG`/`INFO`/`WARN`/`ERROR` enum. User-configurable via `better-leetcode.logLevel` setting (default: `info`). Changes apply at runtime.
+5. **Show Logs command** — `better-leetcode.showLogs` reveals the Output Channel in VS Code's Output panel.
+6. **Integration** — Logging added to: API client (request/response/polling), auth (login/logout/session), tree providers (cache hits, fetches, errors), extension activation.
+
+### Files created
+- `src/logger/types.ts` — LogLevel enum, FileLogConfig, LoggerOptions
+- `src/logger/Logger.ts` — Singleton Logger class
+- `src/logger/index.ts` — Barrel exports
+
+### Files modified
+- `package.json` — `logLevel` setting + `showLogs` command
+- `src/extension.ts` — Logger init, config listener, showLogs command
+- `src/leetcode/client.ts` — Debug/error/info logs on all API calls
+- `src/leetcode/auth.ts` — Login/logout/session verification logs
+- `src/tree/AllProblemsTreeDataProvider.ts` — Replaced console.error, cache debug logs
+- `src/tree/DailyChallengeTreeDataProvider.ts` — Fetch debug/error logs
+- `src/tree/StudyListsTreeDataProvider.ts` — Study plan debug/error logs
+
+### Build Status
+- ✅ Compiles successfully (esbuild, 103.7kb)
+- ✅ Lint clean on new files
+
 ## Session: 2026-05-28 — Testcase Parsing Rewrite & Per-Case Status
 
 ### What was done

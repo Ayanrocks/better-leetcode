@@ -104,6 +104,10 @@
         "command": "better-leetcode.openEditor",
         "title": "Open Editor",
         "icon": "$(edit)"
+      },
+      {
+        "command": "better-leetcode.showLogs",
+        "title": "Better LeetCode: Show Logs"
       }
     ],
     "menus": {
@@ -193,6 +197,23 @@
             "php"
           ],
           "description": "The default language to generate code files in."
+        },
+        "better-leetcode.logLevel": {
+          "type": "string",
+          "default": "info",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "enumDescriptions": [
+            "Verbose output for debugging",
+            "Standard operational messages",
+            "Warnings and errors only",
+            "Errors only"
+          ],
+          "description": "Controls the log verbosity for the Better LeetCode extension."
         }
       }
     }

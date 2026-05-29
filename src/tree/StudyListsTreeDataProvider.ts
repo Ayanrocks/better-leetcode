@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { LeetCodeAuthManager } from '../leetcode';
 import { StudyPlanQuestion } from '../leetcode/types';
+import { Logger } from '../logger';
 
 class StudyPlanItem extends vscode.TreeItem {
   constructor(
@@ -78,14 +79,20 @@ export class StudyListsTreeDataProvider implements vscode.TreeDataProvider<vscod
 
     if (element instanceof StudyPlanItem) {
       try {
+        Logger.getInstance().debug('tree', `Loading study plan: ${element.planSlug}`);
         const details = await this.authManager.getClient().getStudyPlan(element.planSlug);
         if (details === undefined || details.planSubGroups === undefined) {
+          Logger.getInstance().debug('tree', `No groups found for study plan: ${element.planSlug}`);
           return [new vscode.TreeItem('No groups found', vscode.TreeItemCollapsibleState.None)];
         }
+        Logger.getInstance().debug('tree', `Study plan loaded: ${element.planSlug}`, {
+          groupCount: details.planSubGroups.length,
+        });
         return details.planSubGroups.map(
           (group) => new StudyPlanGroupItem(group.name, group.questions),
         );
       } catch (err) {
+        Logger.getInstance().error('tree', `Failed to load study plan: ${element.planSlug}`, err);
         const errItem = new vscode.TreeItem(
           'Error loading groups',
           vscode.TreeItemCollapsibleState.None,

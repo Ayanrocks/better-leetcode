@@ -708,7 +708,10 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   /**
    * Builds the HTML for a single test case detail from resolved CaseData.
    */
-  private buildCaseDetailFromCase(caseData: CaseData | undefined, isSubmit: boolean = false): string {
+  private buildCaseDetailFromCase(
+    caseData: CaseData | undefined,
+    isSubmit: boolean = false,
+  ): string {
     if (caseData === undefined) {
       return '';
     }
@@ -724,7 +727,9 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     }
 
     if (caseData.input !== '') {
-      const addBtn = isSubmitFailure ? `<button class="add-testcase-btn" onclick="addTestCase(${this.escapeHtml(JSON.stringify(caseData.input))})">➕ Add to testcases.txt</button>` : '';
+      const addBtn = isSubmitFailure
+        ? `<button class="add-testcase-btn" onclick="addTestCase(${this.escapeHtml(JSON.stringify(caseData.input))})">➕ Add to testcases.txt</button>`
+        : '';
       html += `
         <div class="section">
           <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;"><span>Input</span>${addBtn}</div>
@@ -855,7 +860,11 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   private getTotalCases(data: TestResultDisplayData, cases: CaseData[]): number {
     const { result } = data;
     // Prefer total_testcases from LeetCode for submissions
-    if (data.type === 'submit' && result.total_testcases !== null && result.total_testcases !== undefined) {
+    if (
+      data.type === 'submit' &&
+      result.total_testcases !== null &&
+      result.total_testcases !== undefined
+    ) {
       return result.total_testcases;
     }
     return cases.length;
@@ -867,7 +876,11 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   private getTotalCorrect(data: TestResultDisplayData, cases: CaseData[]): number {
     const { result } = data;
     // Prefer total_correct from LeetCode for submissions
-    if (data.type === 'submit' && result.total_correct !== null && result.total_correct !== undefined) {
+    if (
+      data.type === 'submit' &&
+      result.total_correct !== null &&
+      result.total_correct !== undefined
+    ) {
       return result.total_correct;
     }
     return cases.filter((c) => c.passed).length;

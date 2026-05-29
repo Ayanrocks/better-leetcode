@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { LeetCodeAuthManager } from '../leetcode';
 import { Problem } from '../leetcode/types';
+import { Logger } from '../logger';
 
 interface ProblemCacheData {
   timestamp: number;
@@ -83,6 +84,9 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
 
   private async loadProblems(): Promise<Problem[]> {
     if (this.problemsCache.length > 0) {
+      Logger.getInstance().debug('tree', 'Problems loaded from memory cache', {
+        count: this.problemsCache.length,
+      });
       return this.problemsCache;
     }
 
@@ -107,12 +111,15 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
           Date.now() - cacheData.timestamp < oneWeekMs &&
           cacheData.questions.length >= minExpectedProblems
         ) {
+          Logger.getInstance().debug('tree', 'Problems loaded from disk cache', {
+            count: cacheData.questions.length,
+            ageMs: Date.now() - cacheData.timestamp,
+          });
           this.problemsCache = cacheData.questions;
           needsFetch = false;
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to read problems cache:', err);
+        Logger.getInstance().error('tree', 'Failed to read problems cache', err);
       }
     }
 
@@ -131,6 +138,7 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
         cancellable: false,
       },
       async () => {
+        Logger.getInstance().info('tree', 'Fetching complete problem catalog from LeetCode API');
         const questions = await this.authManager.getClient().getAllProblems();
         if (questions.length > 0) {
           this.problemsCache = questions;
@@ -139,6 +147,7 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
             questions,
           };
           await fs.promises.writeFile(cacheFile, JSON.stringify(cacheData), 'utf-8');
+          Logger.getInstance().info('tree', `Problem catalog cached: ${questions.length} problems`);
         }
       },
     );

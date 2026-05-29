@@ -9,6 +9,7 @@ import { StudyListsTreeDataProvider } from './tree/StudyListsTreeDataProvider';
 import { ProblemWebview } from './webview/ProblemWebview';
 import { TestResultsPanel } from './webview/TestResultsPanel';
 import { ProblemDetails, ProblemMetaData, SubmissionCheckResult } from './leetcode/types';
+import { Logger, parseLogLevel } from './logger';
 
 /**
  * Metadata stored alongside each solution file for round-trip boilerplate handling.
@@ -357,8 +358,9 @@ async function handleOpenProblem(
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
 
   const testcasesPath = path.join(problemDir, 'testcases.txt');
-  const allTestCases = details.exampleTestcases !== undefined && details.exampleTestcases !== ''
-      ? details.exampleTestcases 
+  const allTestCases =
+    details.exampleTestcases !== undefined && details.exampleTestcases !== ''
+      ? details.exampleTestcases
       : details.sampleTestCase;
 
   if (!fs.existsSync(testcasesPath)) {
@@ -368,7 +370,11 @@ async function handleOpenProblem(
   } else {
     // Upgrade old testcases.txt that only have the single sampleTestCase
     const existing = fs.readFileSync(testcasesPath, 'utf-8');
-    if (details.sampleTestCase && existing.trim() === details.sampleTestCase.trim() && details.exampleTestcases) {
+    if (
+      details.sampleTestCase &&
+      existing.trim() === details.sampleTestCase.trim() &&
+      details.exampleTestcases
+    ) {
       fs.writeFileSync(testcasesPath, details.exampleTestcases, 'utf-8');
     }
   }
@@ -488,11 +494,7 @@ function readInputLineCountCache(globalStoragePath: string): Record<string, numb
  * @param slug - The problem's titleSlug.
  * @param count - The resolved inputLineCount.
  */
-function writeInputLineCountCache(
-  globalStoragePath: string,
-  slug: string,
-  count: number,
-): void {
+function writeInputLineCountCache(globalStoragePath: string, slug: string, count: number): void {
   if (!fs.existsSync(globalStoragePath)) {
     fs.mkdirSync(globalStoragePath, { recursive: true });
   }
@@ -516,11 +518,7 @@ function deriveFromMetaData(metaDataStr: string | undefined): number | null {
   }
   try {
     const parsed = JSON.parse(metaDataStr) as ProblemMetaData;
-    if (
-      parsed.params !== undefined &&
-      Array.isArray(parsed.params) &&
-      parsed.params.length > 0
-    ) {
+    if (parsed.params !== undefined && Array.isArray(parsed.params) && parsed.params.length > 0) {
       return parsed.params.length;
     }
   } catch {
@@ -550,9 +548,7 @@ function deriveFromHtmlContent(
   }
 
   // Count non-empty lines in exampleTestcases
-  const totalInputLines = exampleTestcases
-    .split('\n')
-    .filter((l) => l.trim() !== '').length;
+  const totalInputLines = exampleTestcases.split('\n').filter((l) => l.trim() !== '').length;
   if (totalInputLines === 0) {
     return null;
   }
@@ -584,10 +580,7 @@ function deriveFromHtmlContent(
  * @param details - The fetched problem details.
  * @returns The resolved inputLineCount.
  */
-function resolveInputLineCount(
-  globalStoragePath: string,
-  details: ProblemDetails,
-): number {
+function resolveInputLineCount(globalStoragePath: string, details: ProblemDetails): number {
   // 1. Check global cache
   const cache = readInputLineCountCache(globalStoragePath);
   const cached = cache[details.titleSlug];
@@ -603,10 +596,7 @@ function resolveInputLineCount(
   }
 
   // 3. Try HTML content parsing
-  const fromHtml = deriveFromHtmlContent(
-    details.content,
-    details.exampleTestcases,
-  );
+  const fromHtml = deriveFromHtmlContent(details.content, details.exampleTestcases);
   if (fromHtml !== null) {
     writeInputLineCountCache(globalStoragePath, details.titleSlug, fromHtml);
     return fromHtml;
@@ -665,7 +655,7 @@ function normalizeResult(raw: SubmissionCheckResult): SubmissionCheckResult {
     // 'expected_answer' for submissions. An empty array [] is not nullish,
     // so ?? alone won't fall through — check length explicitly.
     expected_answer:
-      (raw.expected_answer && raw.expected_answer.length > 0)
+      raw.expected_answer && raw.expected_answer.length > 0
         ? raw.expected_answer
         : (raw.expected_code_answer ?? []),
     code_output: raw.code_output ?? [],
@@ -716,12 +706,22 @@ async function handleTestSolution(
 
   // Extract solution code by stripping boilerplate
   const fileContent = editor.document.getText();
-  
+
   const ext = path.extname(filePath).replace('.', '');
   const extToLangMap: Record<string, string> = {
-    cpp: 'cpp', java: 'java', py: 'python3', js: 'javascript',
-    ts: 'typescript', cs: 'csharp', c: 'c', go: 'golang',
-    kt: 'kotlin', swift: 'swift', rs: 'rust', rb: 'ruby', php: 'php',
+    cpp: 'cpp',
+    java: 'java',
+    py: 'python3',
+    js: 'javascript',
+    ts: 'typescript',
+    cs: 'csharp',
+    c: 'c',
+    go: 'golang',
+    kt: 'kotlin',
+    swift: 'swift',
+    rs: 'rust',
+    rb: 'ruby',
+    php: 'php',
   };
   const submitLang = extToLangMap[ext] || metadata.lang;
 
@@ -813,12 +813,22 @@ async function handleSubmitSolution(
 
   // Extract solution code by stripping boilerplate
   const fileContent = editor.document.getText();
-  
+
   const ext = path.extname(filePath).replace('.', '');
   const extToLangMap: Record<string, string> = {
-    cpp: 'cpp', java: 'java', py: 'python3', js: 'javascript',
-    ts: 'typescript', cs: 'csharp', c: 'c', go: 'golang',
-    kt: 'kotlin', swift: 'swift', rs: 'rust', rb: 'ruby', php: 'php',
+    cpp: 'cpp',
+    java: 'java',
+    py: 'python3',
+    js: 'javascript',
+    ts: 'typescript',
+    cs: 'csharp',
+    c: 'c',
+    go: 'golang',
+    kt: 'kotlin',
+    swift: 'swift',
+    rs: 'rust',
+    rb: 'ruby',
+    php: 'php',
   };
   const submitLang = extToLangMap[ext] || metadata.lang;
 
@@ -988,6 +998,35 @@ async function handleChangeLanguage(
  * @param context - The extension context provided by VS Code.
  */
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  // ── Initialize Logger ────────────────────────────────────────────
+  const config = vscode.workspace.getConfiguration('better-leetcode');
+  const logLevelStr = config.get<string>('logLevel', 'info');
+  const logger = Logger.initialize({
+    level: parseLogLevel(logLevelStr),
+    fileConfig: {
+      logDir: Logger.getDefaultLogDir(),
+      baseFileName: 'app',
+      maxFileSize: 5 * 1024 * 1024, // 5 MB
+      maxFiles: 5,
+    },
+    redactPatterns: [],
+  });
+  context.subscriptions.push(logger);
+  logger.info('extension', 'Better LeetCode extension activating');
+
+  // Listen for log level changes at runtime
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('better-leetcode.logLevel')) {
+        const newLevel = vscode.workspace
+          .getConfiguration('better-leetcode')
+          .get<string>('logLevel', 'info');
+        logger.setLevel(parseLogLevel(newLevel));
+        logger.info('extension', `Log level changed to ${newLevel}`);
+      }
+    }),
+  );
+
   const authManager = new LeetCodeAuthManager(context);
   const statusBar = new LeetCodeStatusBarController(authManager);
 
@@ -1033,7 +1072,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand('better-leetcode.openEditor', () => {
       if (ProblemWebview.currentPanel?.currentProblemSlug) {
-        void handleOpenProblem(authManager, context, ProblemWebview.currentPanel.currentProblemSlug);
+        void handleOpenProblem(
+          authManager,
+          context,
+          ProblemWebview.currentPanel.currentProblemSlug,
+        );
       }
     }),
     vscode.commands.registerCommand('better-leetcode.search', () => {
@@ -1049,9 +1092,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void handleSubmitSolution(authManager, testResultsPanel);
     }),
     vscode.commands.registerCommand('better-leetcode.refresh', () => {
+      logger.debug('extension', 'Manual refresh triggered');
       dailyChallengeProvider.refresh();
       allProblemsProvider.refresh(false);
       studyListsProvider.refresh();
+    }),
+    vscode.commands.registerCommand('better-leetcode.showLogs', () => {
+      logger.show();
     }),
   );
 
@@ -1064,11 +1111,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         isLeetCodeEditor = true;
       }
     }
-    void vscode.commands.executeCommand('setContext', 'better-leetcode.isLeetCodeEditor', isLeetCodeEditor);
+    void vscode.commands.executeCommand(
+      'setContext',
+      'better-leetcode.isLeetCodeEditor',
+      isLeetCodeEditor,
+    );
   };
 
   context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor(updateLeetCodeEditorContext)
+    vscode.window.onDidChangeActiveTextEditor(updateLeetCodeEditorContext),
   );
   updateLeetCodeEditorContext(vscode.window.activeTextEditor);
 
@@ -1095,16 +1146,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const testcasesPath = path.join(dir, 'testcases.txt');
       let existing = '';
       if (fs.existsSync(testcasesPath)) {
-          existing = fs.readFileSync(testcasesPath, 'utf-8');
+        existing = fs.readFileSync(testcasesPath, 'utf-8');
       }
       const inputStr = message.input as string;
-      const existingLines = existing.split('\n').map(l => l.trim()).filter(l => l !== '');
+      const existingLines = existing
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l !== '');
       if (!existingLines.includes(inputStr.trim())) {
-          const newContent = existing.trim() !== '' ? existing.trim() + '\n' + inputStr : inputStr;
-          fs.writeFileSync(testcasesPath, newContent, 'utf-8');
-          void vscode.window.showInformationMessage('Test case added to testcases.txt');
+        const newContent = existing.trim() !== '' ? existing.trim() + '\n' + inputStr : inputStr;
+        fs.writeFileSync(testcasesPath, newContent, 'utf-8');
+        void vscode.window.showInformationMessage('Test case added to testcases.txt');
       } else {
-          void vscode.window.showInformationMessage('Test case already exists in testcases.txt');
+        void vscode.window.showInformationMessage('Test case already exists in testcases.txt');
       }
     }
   });

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { LeetCodeAuthManager } from '../leetcode';
+import { Logger } from '../logger';
 
 export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> =
@@ -23,13 +24,18 @@ export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<v
     }
 
     try {
+      Logger.getInstance().debug('tree', 'Fetching daily challenge');
       const problem = await this.authManager.getClient().getDailyChallenge();
       if (problem === undefined) {
+        Logger.getInstance().debug('tree', 'No daily challenge available');
         return [
           new vscode.TreeItem('No daily challenge available', vscode.TreeItemCollapsibleState.None),
         ];
       }
 
+      Logger.getInstance().debug('tree', `Daily challenge: ${problem.title}`, {
+        slug: problem.titleSlug,
+      });
       const item = new vscode.TreeItem(
         `${problem.title} (Daily)`,
         vscode.TreeItemCollapsibleState.None,
@@ -45,6 +51,7 @@ export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<v
 
       return [item];
     } catch (e) {
+      Logger.getInstance().error('tree', 'Failed to fetch daily challenge', e);
       const errorItem = new vscode.TreeItem(
         'Error fetching daily challenge',
         vscode.TreeItemCollapsibleState.None,

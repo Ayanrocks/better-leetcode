@@ -10,6 +10,7 @@ import {
   SubmitResponse,
   SubmissionCheckResult,
 } from './types';
+import { Logger } from '../logger';
 
 /**
  * Helper to parse a raw cookie string and extract LeetCode session and CSRF token.
@@ -128,6 +129,9 @@ export class LeetCodeClient {
     });
 
     if (!response.ok) {
+      Logger.getInstance().error('api', `GraphQL request failed with HTTP ${response.status}`, {
+        url,
+      });
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
@@ -136,13 +140,16 @@ export class LeetCodeClient {
     if (result.errors && result.errors.length > 0) {
       const firstError = result.errors[0];
       const errMsg = firstError ? firstError.message : 'Unknown GraphQL error';
+      Logger.getInstance().error('api', `GraphQL error: ${errMsg}`, { url });
       throw new Error(errMsg);
     }
 
     if (result.data === undefined) {
+      Logger.getInstance().error('api', 'GraphQL response returned no data', { url });
       throw new Error('GraphQL response returned no data.');
     }
 
+    Logger.getInstance().debug('api', `GraphQL request completed`, { url });
     return result.data;
   }
 
@@ -440,6 +447,8 @@ export class LeetCodeClient {
     const url = `${this.endpoint}/problems/${titleSlug}/interpret_solution/`;
     const headers = this.buildRestHeaders();
 
+    Logger.getInstance().debug('api', `Interpret request: ${titleSlug}`, { lang, questionId });
+
     const response = await fetch(url, {
       method: 'POST',
       headers,
@@ -452,10 +461,17 @@ export class LeetCodeClient {
     });
 
     if (!response.ok) {
+      Logger.getInstance().error('api', `Interpret request failed with status ${response.status}`, {
+        titleSlug,
+      });
       throw new Error(`Interpret request failed with status ${response.status}`);
     }
 
-    return (await response.json()) as InterpretResponse;
+    const result = (await response.json()) as InterpretResponse;
+    Logger.getInstance().info('api', `Interpret submitted: ${titleSlug}`, {
+      interpretId: result.interpret_id,
+    });
+    return result;
   }
 
   /**
@@ -476,6 +492,8 @@ export class LeetCodeClient {
     const url = `${this.endpoint}/problems/${titleSlug}/submit/`;
     const headers = this.buildRestHeaders();
 
+    Logger.getInstance().debug('api', `Submit request: ${titleSlug}`, { lang, questionId });
+
     const response = await fetch(url, {
       method: 'POST',
       headers,
@@ -487,10 +505,17 @@ export class LeetCodeClient {
     });
 
     if (!response.ok) {
+      Logger.getInstance().error('api', `Submit request failed with status ${response.status}`, {
+        titleSlug,
+      });
       throw new Error(`Submit request failed with status ${response.status}`);
     }
 
-    return (await response.json()) as SubmitResponse;
+    const result = (await response.json()) as SubmitResponse;
+    Logger.getInstance().info('api', `Submit submitted: ${titleSlug}`, {
+      submissionId: result.submission_id,
+    });
+    return result;
   }
 
   /**
@@ -511,18 +536,35 @@ export class LeetCodeClient {
       const response = await fetch(url, { method: 'GET', headers });
 
       if (!response.ok) {
+        Logger.getInstance().error(
+          'api',
+          `Submission check failed with status ${response.status}`,
+          { submissionId },
+        );
         throw new Error(`Submission check failed with status ${response.status}`);
       }
 
       const result = (await response.json()) as SubmissionCheckResult;
 
       if (result.state !== 'PENDING' && result.state !== 'STARTED') {
+        Logger.getInstance().info('api', `Submission check completed: ${result.status_msg}`, {
+          submissionId,
+          statusCode: result.status_code,
+          runtime: result.status_runtime,
+        });
         return result;
       }
 
+      Logger.getInstance().debug(
+        'api',
+        `Polling submission ${submissionId}: attempt ${attempt + 1}/${maxAttempts}`,
+      );
       await this.delay(pollIntervalMs);
     }
 
+    Logger.getInstance().error('api', `Submission check timed out after ${maxAttempts} attempts`, {
+      submissionId,
+    });
     throw new Error('Submission check timed out after 30 attempts. Please try again.');
   }
 }

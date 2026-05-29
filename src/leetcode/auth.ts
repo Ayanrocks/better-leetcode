@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { LeetCodeClient } from './client';
 import { UserStatus } from './types';
+import { Logger } from '../logger';
 
 /**
  * Manages the LeetCode authentication session and secure storage of cookies.
@@ -40,8 +41,11 @@ export class LeetCodeAuthManager {
   public async initialize(): Promise<void> {
     const cookie = await this.context.secrets.get(LeetCodeAuthManager.SECRET_KEY);
     if (cookie !== undefined) {
+      Logger.getInstance().info('auth', 'Restoring saved session from secure storage');
       this.client.setCookieString(cookie);
       await this.verifySession();
+    } else {
+      Logger.getInstance().debug('auth', 'No saved session found in secure storage');
     }
   }
 
@@ -60,13 +64,16 @@ export class LeetCodeAuthManager {
     try {
       const status = await this.client.getUserStatus();
       if (status.isSignedIn) {
+        Logger.getInstance().info('auth', `Session verified for user: ${status.username}`);
         this.setSession(status);
         return status;
       }
+      Logger.getInstance().warn('auth', 'Session cookie present but user is not signed in');
       this.setSession(undefined);
       return undefined;
-    } catch {
+    } catch (err) {
       // Gracefully handle validation failure (e.g. invalid cookie, network down)
+      Logger.getInstance().error('auth', 'Session verification failed', err);
       this.setSession(undefined);
       return undefined;
     }
@@ -86,6 +93,10 @@ export class LeetCodeAuthManager {
 
     const status = await tempClient.getUserStatus();
     if (!status.isSignedIn) {
+      Logger.getInstance().error(
+        'auth',
+        'Login failed: user is not signed in after cookie validation',
+      );
       throw new Error('Authentication failed: user is not signed in.');
     }
 
@@ -93,6 +104,7 @@ export class LeetCodeAuthManager {
     await this.context.secrets.store(LeetCodeAuthManager.SECRET_KEY, cookieString);
     this.client.setCookieString(cookieString);
     this.setSession(status);
+    Logger.getInstance().info('auth', `Login successful: ${status.username}`);
     return status;
   }
 
@@ -100,6 +112,7 @@ export class LeetCodeAuthManager {
    * Logs out the user by clearing credentials and deleting the stored cookie.
    */
   public async logout(): Promise<void> {
+    Logger.getInstance().info('auth', 'User logging out');
     await this.context.secrets.delete(LeetCodeAuthManager.SECRET_KEY);
     this.client.clearCredentials();
     this.setSession(undefined);
