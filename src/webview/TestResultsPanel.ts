@@ -545,6 +545,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
         <span style="opacity: 0.8; font-size: 13px;">
           ${totalCorrect} / ${totalCases} test cases passed
         </span>
+        ${result.status_runtime ? `<span style="opacity: 0.8; font-size: 13px; border-left: 1px solid rgba(128,128,128,0.3); padding-left: 12px; margin-left: 12px;">⏱ Runtime: ${this.escapeHtml(result.status_runtime)}</span>` : ''}
         <button class="show-problem-btn" id="show-problem-btn" title="Show Problem Statement">📄 Show Problem</button>
       </div>
 

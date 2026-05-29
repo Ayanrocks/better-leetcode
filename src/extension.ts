@@ -227,6 +227,7 @@ async function handleOpenProblem(
   context: vscode.ExtensionContext,
   problemSlug: string,
   preferredLang?: string,
+  showEditorIfAlreadyOpen: boolean = true
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration('better-leetcode');
   let storagePath = config.get<string>('storagePath');
@@ -379,11 +380,23 @@ async function handleOpenProblem(
     }
   }
 
-  // Open Webview in Column One and Code File in Column Two side-by-side
+  // Check if an editor for this problem is already open
+  const existingDoc = vscode.workspace.textDocuments.find((d) => {
+    const meta = readProblemMetadata(d.uri.fsPath);
+    return meta !== null && meta.titleSlug === problemSlug;
+  });
+
+  // Open Webview in Column One
   ProblemWebview.createOrShow(context.extensionUri, details);
 
-  const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(codeFilePath));
-  await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
+  if (existingDoc) {
+    if (showEditorIfAlreadyOpen) {
+      await vscode.window.showTextDocument(existingDoc, vscode.ViewColumn.Two, false);
+    }
+  } else {
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(codeFilePath));
+    await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
+  }
 }
 
 /**
@@ -1067,7 +1080,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (!editor) return;
       const metadata = readProblemMetadata(editor.document.uri.fsPath);
       if (metadata) {
-        void handleOpenProblem(authManager, context, metadata.titleSlug);
+        void handleOpenProblem(authManager, context, metadata.titleSlug, metadata.lang, false);
       }
     }),
     vscode.commands.registerCommand('better-leetcode.openEditor', () => {
@@ -1138,7 +1151,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         );
         return;
       }
-      void handleOpenProblem(authManager, context, metadata.titleSlug, metadata.lang);
+      void handleOpenProblem(authManager, context, metadata.titleSlug, metadata.lang, false);
     } else if (message.command === 'addTestCase' && message.input) {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
