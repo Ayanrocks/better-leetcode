@@ -78,7 +78,7 @@ export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<v
     let colorId: string;
     switch (difficulty) {
       case 'Easy': colorId = 'charts.green'; break;
-      case 'Medium': colorId = 'charts.orange'; break;
+      case 'Medium': colorId = 'charts.yellow'; break;
       case 'Hard': colorId = 'charts.red'; break;
       default: colorId = 'foreground'; break;
     }

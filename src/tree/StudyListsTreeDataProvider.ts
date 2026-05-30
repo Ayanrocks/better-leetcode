@@ -69,7 +69,7 @@ class StudyPlanProblemItem extends vscode.TreeItem {
     let colorId: string;
     switch (diff) {
       case 'EASY': colorId = 'charts.green'; break;
-      case 'MEDIUM': colorId = 'charts.orange'; break;
+      case 'MEDIUM': colorId = 'charts.yellow'; break;
       case 'HARD': colorId = 'charts.red'; break;
       default: colorId = 'foreground'; break;
     }

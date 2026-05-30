@@ -129,10 +129,11 @@ export class LeetCodeClient {
     });
 
     if (!response.ok) {
-      Logger.getInstance().error('api', `GraphQL request failed with HTTP ${response.status}`, {
+      const errorText = await response.text();
+      Logger.getInstance().error('api', `GraphQL request failed with HTTP ${response.status}. Response: ${errorText}`, {
         url,
       });
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
 
     const result = (await response.json()) as GraphQLResponse<T>;
@@ -438,7 +439,7 @@ export class LeetCodeClient {
             title
             questionFrontendId
             difficulty
-            paidOnly: isPaidOnly
+            paidOnly
             status
           }
         }
