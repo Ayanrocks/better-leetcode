@@ -76,6 +76,7 @@ export interface ProblemDetails {
   sampleTestCase: string;
   exampleTestcases?: string;
   metaData?: string;
+  paidOnly: boolean;
 }
 
 export interface StudyPlanQuestion {
@@ -83,6 +84,8 @@ export interface StudyPlanQuestion {
   titleSlug: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   questionFrontendId: string;
+  status?: string | null;
+  paidOnly: boolean;
 }
 
 export interface StudyPlanSubGroup {

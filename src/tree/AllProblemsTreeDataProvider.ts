@@ -48,8 +48,8 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
           `${problem.frontendQuestionId}. ${problem.title}`,
           vscode.TreeItemCollapsibleState.None,
         );
-        item.description = problem.difficulty;
-        item.iconPath = this.getDifficultyIcon(problem.difficulty);
+        item.description = this.getDifficultyDescription(problem.difficulty);
+        item.iconPath = this.getDifficultyIcon(problem.difficulty, problem.status, problem.paidOnly);
         item.command = {
           command: 'better-leetcode.openProblem',
           title: 'Open Problem',
@@ -153,16 +153,31 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
     );
   }
 
-  private getDifficultyIcon(difficulty: string): vscode.ThemeIcon {
+  private getDifficultyDescription(difficulty: string): string {
     switch (difficulty) {
-      case 'Easy':
-        return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconPassed'));
-      case 'Medium':
-        return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.yellow'));
-      case 'Hard':
-        return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconFailed'));
-      default:
-        return new vscode.ThemeIcon('circle-outline');
+      case 'Easy': return 'Easy';
+      case 'Medium': return 'Medium';
+      case 'Hard': return 'Hard';
+      default: return difficulty;
     }
+  }
+
+  private getDifficultyIcon(difficulty: string, status?: string | null, paidOnly?: boolean): vscode.ThemeIcon {
+    if (status === 'ac') {
+      return new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
+    }
+
+    let colorId: string;
+    switch (difficulty) {
+      case 'Easy': colorId = 'charts.green'; break;
+      case 'Medium': colorId = 'charts.orange'; break;
+      case 'Hard': colorId = 'charts.red'; break;
+      default: colorId = 'foreground'; break;
+    }
+
+    if (paidOnly) {
+      return new vscode.ThemeIcon('lock', new vscode.ThemeColor(colorId));
+    }
+    return new vscode.ThemeIcon('tag', new vscode.ThemeColor(colorId));
   }
 }

@@ -1,5 +1,25 @@
 # Agent Work History
 
+## Session: 2026-05-31 — Sidebar Study Lists & UI Enhancements
+
+### What was done
+1. **Favorite Lists in Sidebar** — Fetched and integrated the user's favorite lists using the `myFavoriteList` and `favoriteQuestionList` GraphQL queries. These lists are now shown in the Study Lists view below the default LeetCode 75 and Top Interview 150 lists.
+2. **Native Codicons & Pastel Colors** — Removed the artificial emojis entirely. Switched the premium lock to use VS Code's native Codicon syntax (`$(lock)`), seamlessly integrating it into the theme. Updated the difficulty tag icons to use VS Code's native pastel chart colors (`charts.green`, `charts.orange`, `charts.red`) for a much cleaner, integrated look.
+3. **Premium Problem Validation** — When a user tries to open a premium problem without a LeetCode Premium account, the extension now displays a helpful toast notification instead of a blocking modal alert.
+4. **API Request Logging** — Added detailed debug logging for both GraphQL and REST API requests in the `LeetCodeClient`.
+5. **Problem Status Indicators** — Integrated the problem `status` to show a green tick mark (`check`) for solved (`ac`) problems across all sidebar views (Study Lists, All Problems, Daily Challenge).
+
+### Files modified
+- `src/leetcode/client.ts` — Added `getFavoriteLists` and `getFavoriteListProblems`. Included `status` field in `getStudyPlan` queries.
+- `src/leetcode/types.ts` — Added `paidOnly` field to `StudyPlanQuestion` and `ProblemDetails` interfaces.
+- `src/leetcode/client.ts` — Updated GraphQL queries to fetch `isPaidOnly` and added detailed logging for API requests.
+- `src/extension.ts` — Added a check to prevent non-premium users from opening premium problems, using a standard notification.
+- `src/tree/StudyListsTreeDataProvider.ts` — Updated the `lock` prefix to use the native `$(lock)` Codicon and switched difficulty tag icons to pastel `charts.*` colors.
+- `src/tree/AllProblemsTreeDataProvider.ts` — Same as above.
+- `src/tree/DailyChallengeTreeDataProvider.ts` — Same as above.
+
+### Build Status
+- ✅ Compiles successfully (esbuild, 108.9kb)
 ## Session: 2026-05-30 — Logging System with File Rotation
 
 ### What was done

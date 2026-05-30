@@ -149,7 +149,7 @@ export class LeetCodeClient {
       throw new Error('GraphQL response returned no data.');
     }
 
-    Logger.getInstance().debug('api', `GraphQL request completed`, { url });
+    Logger.getInstance().debug('api', `GraphQL request completed: ${query.substring(0, 100).replace(/\n/g, ' ')}...`, { url, data: result.data });
     return result.data;
   }
 
@@ -349,6 +349,7 @@ export class LeetCodeClient {
           titleSlug
           content
           difficulty
+          paidOnly: isPaidOnly
           codeSnippets {
             lang
             langSlug
@@ -382,6 +383,8 @@ export class LeetCodeClient {
               titleSlug
               difficulty
               questionFrontendId
+              paidOnly: isPaidOnly
+              status
             }
           }
         }
@@ -390,6 +393,63 @@ export class LeetCodeClient {
     const variables = { planSlug };
     const data = await this.query<{ studyPlanV2Detail: StudyPlanDetails }>(queryStr, variables);
     return data.studyPlanV2Detail;
+  }
+
+  /**
+   * Fetches the user's favorite lists.
+   */
+  public async getFavoriteLists(): Promise<{ name: string; slug: string }[]> {
+    const queryStr = `
+      query myFavoriteList {
+        myCreatedFavoriteList {
+          favorites {
+            name
+            slug
+          }
+        }
+        myCollectedFavoriteList {
+          favorites {
+            name
+            slug
+          }
+        }
+      }
+    `;
+    const data = await this.query<any>(queryStr);
+    const lists: { name: string; slug: string }[] = [];
+    if (data?.myCreatedFavoriteList?.favorites) {
+      lists.push(...data.myCreatedFavoriteList.favorites);
+    }
+    if (data?.myCollectedFavoriteList?.favorites) {
+      lists.push(...data.myCollectedFavoriteList.favorites);
+    }
+    return lists;
+  }
+
+  /**
+   * Fetches problems for a specific favorite list.
+   */
+  public async getFavoriteListProblems(favoriteSlug: string): Promise<StudyPlanQuestion[]> {
+    const queryStr = `
+      query favoriteQuestionList($favoriteSlug: String!) {
+        favoriteQuestionList(favoriteSlug: $favoriteSlug) {
+          questions {
+            titleSlug
+            title
+            questionFrontendId
+            difficulty
+            paidOnly: isPaidOnly
+            status
+          }
+        }
+      }
+    `;
+    const variables = { favoriteSlug };
+    const data = await this.query<any>(queryStr, variables);
+    if (!data?.favoriteQuestionList?.questions) {
+      return [];
+    }
+    return data.favoriteQuestionList.questions;
   }
 
   // ── REST API Methods (Test / Submit) ──────────────────────────────
@@ -470,6 +530,7 @@ export class LeetCodeClient {
     const result = (await response.json()) as InterpretResponse;
     Logger.getInstance().info('api', `Interpret submitted: ${titleSlug}`, {
       interpretId: result.interpret_id,
+      data: result,
     });
     return result;
   }
@@ -514,6 +575,7 @@ export class LeetCodeClient {
     const result = (await response.json()) as SubmitResponse;
     Logger.getInstance().info('api', `Submit submitted: ${titleSlug}`, {
       submissionId: result.submission_id,
+      data: result,
     });
     return result;
   }
@@ -551,6 +613,7 @@ export class LeetCodeClient {
           submissionId,
           statusCode: result.status_code,
           runtime: result.status_runtime,
+          data: result,
         });
         return result;
       }

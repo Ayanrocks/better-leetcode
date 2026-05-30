@@ -297,6 +297,16 @@ async function handleOpenProblem(
     return;
   }
 
+  if (details.paidOnly) {
+    const status = authManager.getStatus();
+    if (!status?.isPremium) {
+      void vscode.window.showErrorMessage(
+        `"${details.title}" is a premium problem. Please upgrade to LeetCode Premium to view it.`
+      );
+      return;
+    }
+  }
+
   const problemDir = path.join(storagePath, problemSlug);
   if (!fs.existsSync(problemDir)) {
     fs.mkdirSync(problemDir, { recursive: true });
@@ -414,7 +424,7 @@ async function handleSearch(allProblemsProvider: AllProblemsTreeDataProvider): P
   }
 
   const items = problems.map((problem) => ({
-    label: `${problem.frontendQuestionId}. ${problem.title}`,
+    label: `${problem.paidOnly ? '🔒 ' : ''}${problem.frontendQuestionId}. ${problem.title}`,
     description: problem.difficulty,
     detail: problem.titleSlug,
   }));

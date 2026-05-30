@@ -10,6 +10,18 @@ class StudyPlanItem extends vscode.TreeItem {
   ) {
     super(name, vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'studyPlan';
+    this.iconPath = new vscode.ThemeIcon('book');
+  }
+}
+
+class FavoriteListItem extends vscode.TreeItem {
+  constructor(
+    public readonly name: string,
+    public readonly slug: string,
+  ) {
+    super(name, vscode.TreeItemCollapsibleState.Collapsed);
+    this.contextValue = 'favoriteList';
+    this.iconPath = new vscode.ThemeIcon('heart');
   }
 }
 
@@ -29,8 +41,8 @@ class StudyPlanProblemItem extends vscode.TreeItem {
       `${question.questionFrontendId}. ${question.title}`,
       vscode.TreeItemCollapsibleState.None,
     );
-    this.description = question.difficulty;
-    this.iconPath = StudyPlanProblemItem.getDifficultyIcon(question.difficulty);
+    this.description = StudyPlanProblemItem.getDifficultyDescription(question.difficulty);
+    this.iconPath = StudyPlanProblemItem.getDifficultyIcon(question.difficulty, question.status, question.paidOnly);
     this.command = {
       command: 'better-leetcode.openProblem',
       title: 'Open Problem',
@@ -38,18 +50,34 @@ class StudyPlanProblemItem extends vscode.TreeItem {
     };
   }
 
-  private static getDifficultyIcon(difficulty: string): vscode.ThemeIcon {
+  private static getDifficultyDescription(difficulty: string): string {
     const diff = difficulty.toUpperCase();
     switch (diff) {
-      case 'EASY':
-        return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconPassed'));
-      case 'MEDIUM':
-        return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.yellow'));
-      case 'HARD':
-        return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('testing.iconFailed'));
-      default:
-        return new vscode.ThemeIcon('circle-outline');
+      case 'EASY': return 'Easy';
+      case 'MEDIUM': return 'Medium';
+      case 'HARD': return 'Hard';
+      default: return difficulty;
     }
+  }
+
+  private static getDifficultyIcon(difficulty: string, status?: string | null, paidOnly?: boolean): vscode.ThemeIcon {
+    if (status === 'ac') {
+      return new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
+    }
+
+    const diff = difficulty.toUpperCase();
+    let colorId: string;
+    switch (diff) {
+      case 'EASY': colorId = 'charts.green'; break;
+      case 'MEDIUM': colorId = 'charts.orange'; break;
+      case 'HARD': colorId = 'charts.red'; break;
+      default: colorId = 'foreground'; break;
+    }
+
+    if (paidOnly) {
+      return new vscode.ThemeIcon('lock', new vscode.ThemeColor(colorId));
+    }
+    return new vscode.ThemeIcon('tag', new vscode.ThemeColor(colorId));
   }
 }
 
@@ -71,10 +99,35 @@ export class StudyListsTreeDataProvider implements vscode.TreeDataProvider<vscod
 
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (!element) {
-      return [
+      const defaultLists: vscode.TreeItem[] = [
         new StudyPlanItem('Top Interview 150', 'top-interview-150'),
         new StudyPlanItem('LeetCode 75', 'leetcode-75'),
       ];
+      try {
+        const favorites = await this.authManager.getClient().getFavoriteLists();
+        for (const fav of favorites) {
+          defaultLists.push(new FavoriteListItem(fav.name, fav.slug));
+        }
+      } catch (err) {
+        Logger.getInstance().error('tree', 'Failed to fetch favorites', err);
+      }
+      return defaultLists;
+    }
+
+    if (element instanceof FavoriteListItem) {
+      try {
+        Logger.getInstance().debug('tree', `Loading favorite list: ${element.slug}`);
+        const questions = await this.authManager.getClient().getFavoriteListProblems(element.slug);
+        if (questions.length === 0) {
+          return [new vscode.TreeItem('No questions found', vscode.TreeItemCollapsibleState.None)];
+        }
+        return questions.map((q) => new StudyPlanProblemItem(q));
+      } catch (err) {
+        Logger.getInstance().error('tree', `Failed to load favorite list: ${element.slug}`, err);
+        const errItem = new vscode.TreeItem('Error loading list', vscode.TreeItemCollapsibleState.None);
+        errItem.description = String(err);
+        return [errItem];
+      }
     }
 
     if (element instanceof StudyPlanItem) {
