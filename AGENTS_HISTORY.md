@@ -12,3 +12,16 @@
 - `package.json`: Registered two new palette commands
 
 **Status**: Build passes. Ready for testing.
+
+## 2026-05-31: Collapsible Problem Topic Tags
+
+**Problem**: Add collapsible topic tags to the problem description webview, hidden by default.
+
+**Changes**:
+- `types.ts`: Added `topicTags` to `ProblemDetails` interface.
+- `client.ts`: Updated `questionData` GraphQL query to fetch `topicTags`.
+- `ProblemWebview.ts`: Designed a premium collapsible button and tags container using CSS Grid transition tricks, plus toggle scripts.
+- `leetcode.test.ts`: Added unit tests, resolved test compilation/logger warnings.
+- `TestResultsPanel.ts`: Fixed pre-existing unused variable compiler errors.
+
+**Status**: Build and all 13 tests pass. Collapsible tags are successfully rendered.

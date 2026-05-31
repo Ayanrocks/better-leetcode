@@ -77,6 +77,7 @@ export interface ProblemDetails {
   exampleTestcases?: string;
   metaData?: string;
   paidOnly: boolean;
+  topicTags?: Tag[];
 }
 
 export interface StudyPlanQuestion {

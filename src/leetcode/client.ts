@@ -6,6 +6,7 @@ import {
   Problem,
   ProblemDetails,
   StudyPlanDetails,
+  StudyPlanQuestion,
   InterpretResponse,
   SubmitResponse,
   SubmissionCheckResult,
@@ -359,6 +360,10 @@ export class LeetCodeClient {
           sampleTestCase
           exampleTestcases
           metaData
+          topicTags {
+            name
+            slug
+          }
         }
       }
     `;

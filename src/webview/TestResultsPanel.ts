@@ -43,7 +43,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   private pendingHtml: string | undefined;
   private onMessageCallback: ((message: { command: string }) => void) | undefined;
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(_extensionUri: vscode.Uri) {}
 
   /**
    * Registers a callback to handle messages from the webview.
@@ -807,7 +807,6 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     const codeAnswer = result.code_answer ?? [];
     const expectedAnswer = result.expected_answer ?? [];
     const stdOutputList = result.std_output_list ?? [];
-    const codeOutput = result.code_output ?? [];
 
     // Determine whether we have per-case array data
     const hasPerCaseData = codeAnswer.length > 0 || expectedAnswer.length > 0;

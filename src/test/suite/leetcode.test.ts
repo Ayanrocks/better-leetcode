@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { parseCookies, LeetCodeClient, LeetCodeAuthManager } from '../../leetcode';
+import { Logger, LogLevel } from '../../logger';
 
 class MockSecretStorage implements vscode.SecretStorage {
   private storage = new Map<string, string>();
@@ -41,6 +42,19 @@ function createMockResponse(body: unknown, status = 200): Response {
 suite('LeetCode Module Test Suite', () => {
   const originalFetch = globalThis.fetch;
   let fetchMock: (url: string | URL | Request, init?: RequestInit) => Promise<Response>;
+
+  suiteSetup(() => {
+    Logger.initialize({
+      level: LogLevel.DEBUG,
+      fileConfig: {
+        logDir: Logger.getDefaultLogDir(),
+        baseFileName: 'better-leetcode-test',
+        maxFileSize: 10 * 1024 * 1024,
+        maxFiles: 5,
+      },
+      redactPatterns: [],
+    });
+  });
 
   setup(() => {
     fetchMock = () => Promise.reject(new Error('Fetch mock not configured'));
@@ -130,6 +144,45 @@ suite('LeetCode Module Test Suite', () => {
 
       const status = await client.getUserStatus();
       assert.deepStrictEqual(status, mockStatus);
+    });
+
+    test('Should fetch problem details with topic tags', async () => {
+      const client = new LeetCodeClient();
+      const mockDetails = {
+        questionId: '1',
+        questionFrontendId: '1',
+        title: 'Two Sum',
+        titleSlug: 'two-sum',
+        content: '<p>Solve it.</p>',
+        difficulty: 'Easy' as const,
+        codeSnippets: [{ lang: 'Go', langSlug: 'golang', code: 'func twoSum...' }],
+        sampleTestCase: '[2,7,11,15]\n9',
+        exampleTestcases: '[2,7,11,15]\n9',
+        metaData: '{}',
+        paidOnly: false,
+        topicTags: [
+          { name: 'Array', slug: 'array' },
+          { name: 'Hash Table', slug: 'hash-table' },
+        ],
+      };
+
+      fetchMock = (_url, init) => {
+        const bodyStr = init?.body as string;
+        assert.ok(bodyStr.includes('topicTags'));
+        return Promise.resolve(
+          createMockResponse({
+            data: { question: mockDetails },
+          }),
+        );
+      };
+
+      const details = await client.getProblemDetails('two-sum');
+      assert.deepStrictEqual(details, mockDetails);
+      assert.ok(details.topicTags);
+      const tags = details.topicTags!;
+      assert.strictEqual(tags.length, 2);
+      assert.strictEqual(tags[0]!.name, 'Array');
+      assert.strictEqual(tags[1]!.name, 'Hash Table');
     });
   });
 
