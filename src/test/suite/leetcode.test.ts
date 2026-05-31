@@ -85,6 +85,16 @@ suite('LeetCode Module Test Suite', () => {
       const parsed = parseCookies(cookieStr);
       assert.strictEqual(parsed, undefined);
     });
+
+    test('Should handle empty string, extra whitespace, and malformed pairs', () => {
+      assert.strictEqual(parseCookies(''), undefined);
+      assert.strictEqual(parseCookies('   '), undefined);
+      
+      const parsed = parseCookies('  LEETCODE_SESSION=sess ;   csrftoken=csrf  ; malformedPair ;');
+      assert.ok(parsed);
+      assert.strictEqual(parsed.session, 'sess');
+      assert.strictEqual(parsed.csrfToken, 'csrf');
+    });
   });
 
   suite('LeetCodeClient', () => {
@@ -294,6 +304,39 @@ suite('LeetCode Module Test Suite', () => {
       assert.strictEqual(info.questions[0]!.question_id, 1001);
       assert.strictEqual(info.questions[0]!.credit, 3);
     });
+
+    test('Should handle REST interpretSolution request', async () => {
+      const client = new LeetCodeClient();
+      client.setCookieString('LEETCODE_SESSION=s; csrftoken=c;');
+      fetchMock = (url, init) => {
+        const urlStr = typeof url === 'string' ? url : url.toString();
+        assert.ok(urlStr.includes('/interpret_solution/'));
+        assert.strictEqual(init?.method, 'POST');
+        return Promise.resolve(createMockResponse({ interpret_id: 'test-interpret-id' }));
+      };
+      const res = await client.interpretSolution('two-sum', '1', 'python3', 'print(1)', '1\\n2');
+      assert.strictEqual(res.interpret_id, 'test-interpret-id');
+    });
+
+    test('Should fetch getAllProblems efficiently via batching', async () => {
+      const client = new LeetCodeClient();
+      let reqCount = 0;
+      fetchMock = () => {
+        reqCount++;
+        return Promise.resolve(createMockResponse({
+          data: {
+            problemsetQuestionList: {
+              total: 5,
+              questions: [ { frontendQuestionId: reqCount.toString() } ] // Mock varying question
+            }
+          }
+        }));
+      };
+      
+      const problems = await client.getAllProblems(2); // Batch size 2, total 5 means 3 requests (0, 2, 4)
+      assert.strictEqual(problems.length, 3);
+      assert.strictEqual(reqCount, 3);
+    });
   });
 
   suite('LeetCodeAuthManager', () => {
@@ -342,6 +385,12 @@ suite('LeetCode Module Test Suite', () => {
       assert.ok(manager.getStatus());
       assert.strictEqual(manager.getStatus()?.username, 'premium_user');
       assert.strictEqual(manager.getStatus()?.isPremium, true);
+    });
+
+    test('Should fail login when user is not signed in', async () => {
+      fetchMock = () => Promise.resolve(createMockResponse({ data: { userStatus: { isSignedIn: false } } }));
+      const manager = new LeetCodeAuthManager(mockContext);
+      await assert.rejects(() => manager.login('LEETCODE_SESSION=a; csrftoken=b;'), /user is not signed in/);
     });
 
     test('Should handle login and save cookie to secure storage', async () => {

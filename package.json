@@ -208,9 +208,24 @@
             "swift",
             "rust",
             "ruby",
-            "php"
+            "php",
+            "mysql",
+            "mssql",
+            "oraclesql",
+            "postgresql"
           ],
           "description": "The default language to generate code files in."
+        },
+        "better-leetcode.defaultDbLanguage": {
+          "type": "string",
+          "default": "mysql",
+          "enum": [
+            "mysql",
+            "mssql",
+            "oraclesql",
+            "postgresql"
+          ],
+          "description": "The default language to generate code files in for database problems."
         },
         "better-leetcode.logLevel": {
           "type": "string",

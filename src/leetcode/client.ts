@@ -423,7 +423,11 @@ export class LeetCodeClient {
         }
       }
     `;
-    const data = await this.query<any>(queryStr);
+    interface FavoriteListResponse {
+      myCreatedFavoriteList?: { favorites?: { name: string; slug: string }[] };
+      myCollectedFavoriteList?: { favorites?: { name: string; slug: string }[] };
+    }
+    const data = await this.query<FavoriteListResponse>(queryStr);
     const lists: { name: string; slug: string }[] = [];
     if (data?.myCreatedFavoriteList?.favorites) {
       lists.push(...data.myCreatedFavoriteList.favorites);
@@ -453,7 +457,10 @@ export class LeetCodeClient {
       }
     `;
     const variables = { favoriteSlug };
-    const data = await this.query<any>(queryStr, variables);
+    interface FavoriteQuestionListResponse {
+      favoriteQuestionList?: { questions?: StudyPlanQuestion[] };
+    }
+    const data = await this.query<FavoriteQuestionListResponse>(queryStr, variables);
     if (!data?.favoriteQuestionList?.questions) {
       return [];
     }
@@ -716,7 +723,22 @@ export class LeetCodeClient {
     `;
 
     Logger.getInstance().debug('api', `Fetching contest info: ${contestSlug}`);
-    const data = await this.query<any>(queryStr, { contestSlug });
+    interface ContestInfoGraphQLResponse {
+      contest?: {
+        title?: string;
+        titleSlug?: string;
+        description?: string;
+        startTime?: number;
+        duration?: number;
+        questions?: Array<{
+          title?: string;
+          titleSlug?: string;
+          credit?: number;
+          questionId?: string;
+        }>;
+      };
+    }
+    const data = await this.query<ContestInfoGraphQLResponse>(queryStr, { contestSlug });
 
     if (!data || !data.contest) {
       throw new Error(`Contest info request failed for ${contestSlug}`);
@@ -733,9 +755,10 @@ export class LeetCodeClient {
         start_time: contestData.startTime || 0,
         duration: contestData.duration || 0,
       },
-      questions: (contestData.questions || []).map((q: any) => ({
+      questions: (contestData.questions || []).map((q) => ({
         question_id: q.questionId ? parseInt(q.questionId, 10) : 0,
         credit: q.credit || 0,
+        difficulty: 0, // Fallback since the query doesn't fetch it
         title: q.title || '',
         title_slug: q.titleSlug || '',
       })),

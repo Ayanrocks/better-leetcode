@@ -41,6 +41,7 @@ export class LeetCodeStatusBarController {
     if (status && status.isSignedIn) {
       const premiumLabel = status.isPremium ? 'Premium' : 'Standard';
       this.statusBarItem.text = `$(account) LeetCode: ${status.username}`;
+      this.statusBarItem.command = 'better-leetcode.showUser';
       this.statusBarItem.tooltip =
         `Signed in as ${status.realName || status.username} (${premiumLabel}).\n` +
         `Click to view account actions.`;
@@ -48,6 +49,7 @@ export class LeetCodeStatusBarController {
       this.statusBarItem.color = undefined;
     } else {
       this.statusBarItem.text = '$(sign-in) LeetCode: Sign In';
+      this.statusBarItem.command = 'better-leetcode.signin';
       this.statusBarItem.tooltip = 'Click to sign in to LeetCode';
       this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
       this.statusBarItem.color = undefined;

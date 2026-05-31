@@ -15,7 +15,7 @@ import { Logger, parseLogLevel } from './logger';
 /**
  * Metadata stored alongside each solution file for round-trip boilerplate handling.
  */
-interface ProblemMetadata {
+export interface ProblemMetadata {
   questionId: string;
   titleSlug: string;
   lang: string;
@@ -255,6 +255,7 @@ async function handleOpenProblem(
   }
 
   let defaultLanguage = preferredLang || config.get<string>('defaultLanguage');
+  let defaultDbLanguage = config.get<string>('defaultDbLanguage') || 'mysql';
   if (defaultLanguage === undefined || defaultLanguage === '') {
     const languages = [
       { label: 'Python3', value: 'python3' },
@@ -266,6 +267,10 @@ async function handleOpenProblem(
       { label: 'Rust', value: 'rust' },
       { label: 'C', value: 'c' },
       { label: 'C#', value: 'csharp' },
+      { label: 'MySQL', value: 'mysql' },
+      { label: 'MS SQL Server', value: 'mssql' },
+      { label: 'Oracle', value: 'oraclesql' },
+      { label: 'PostgreSQL', value: 'postgresql' },
     ];
 
     const selected = await vscode.window.showQuickPick(languages, {
@@ -328,14 +333,37 @@ async function handleOpenProblem(
     rust: 'rs',
     ruby: 'rb',
     php: 'php',
+    mysql: 'sql',
+    mssql: 'sql',
+    oraclesql: 'sql',
+    postgresql: 'sql',
   };
 
-  const ext = extMap[defaultLanguage] !== undefined ? extMap[defaultLanguage] : 'txt';
+  let targetLang = defaultLanguage;
+  const dbLangs = ['mysql', 'mssql', 'oraclesql', 'postgresql'];
+  
+  if (details.codeSnippets.length > 0) {
+    const hasDefaultLang = details.codeSnippets.some(s => s.langSlug === defaultLanguage);
+    if (!hasDefaultLang) {
+      const hasDbLangs = details.codeSnippets.some(s => dbLangs.includes(s.langSlug));
+      if (hasDbLangs) {
+        if (details.codeSnippets.some(s => s.langSlug === defaultDbLanguage)) {
+          targetLang = defaultDbLanguage;
+        } else {
+          targetLang = details.codeSnippets.find(s => dbLangs.includes(s.langSlug))?.langSlug || details.codeSnippets[0].langSlug;
+        }
+      } else {
+        targetLang = details.codeSnippets[0].langSlug;
+      }
+    }
+  }
+
+  const ext = extMap[targetLang] !== undefined ? extMap[targetLang] : 'txt';
   const codeFilePath = path.join(problemDir, `main.${ext}`);
 
   let codeSnippet = '';
   if (details.codeSnippets.length > 0) {
-    const found = details.codeSnippets.find((s) => s.langSlug === defaultLanguage);
+    const found = details.codeSnippets.find((s) => s.langSlug === targetLang);
     if (found !== undefined) {
       codeSnippet = found.code;
     } else {
@@ -346,9 +374,15 @@ async function handleOpenProblem(
     }
   }
 
-  if (!fs.existsSync(codeFilePath)) {
+  if (fs.existsSync(codeFilePath)) {
+    const existingMetadata = readProblemMetadata(codeFilePath);
+    if (existingMetadata) {
+      targetLang = existingMetadata.lang;
+      codeSnippet = existingMetadata.originalSnippet;
+    }
+  } else {
     // Wrap snippet with language-specific boilerplate to prevent linter errors
-    const wrappedCode = BoilerplateManager.wrapWithBoilerplate(defaultLanguage, codeSnippet);
+    const wrappedCode = BoilerplateManager.wrapWithBoilerplate(targetLang, codeSnippet);
     fs.writeFileSync(codeFilePath, wrappedCode, 'utf-8');
   }
 
@@ -361,7 +395,7 @@ async function handleOpenProblem(
   const metadata: ProblemMetadata = {
     questionId: details.questionId,
     titleSlug: details.titleSlug,
-    lang: defaultLanguage,
+    lang: targetLang,
     originalSnippet: codeSnippet,
     sampleTestCase: details.sampleTestCase,
     exampleTestcases: details.exampleTestcases ?? '',
@@ -403,9 +437,29 @@ async function handleOpenProblem(
   if (existingDoc) {
     if (showEditorIfAlreadyOpen) {
       await vscode.window.showTextDocument(existingDoc, vscode.ViewColumn.Two, false);
+      if (ext === 'sql') {
+        const vscodeLangMap: Record<string, string> = {
+          mysql: 'mysql',
+          postgresql: 'postgres',
+          mssql: 'sql',
+          oraclesql: 'oraclesql'
+        };
+        const vscodeLangId = vscodeLangMap[targetLang] || 'sql';
+        try { await vscode.languages.setTextDocumentLanguage(existingDoc, vscodeLangId); } catch { try { await vscode.languages.setTextDocumentLanguage(existingDoc, 'sql'); } catch {} }
+      }
     }
   } else {
     const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(codeFilePath));
+    if (ext === 'sql') {
+      const vscodeLangMap: Record<string, string> = {
+        mysql: 'mysql',
+        postgresql: 'postgres',
+        mssql: 'sql',
+        oraclesql: 'oraclesql'
+      };
+      const vscodeLangId = vscodeLangMap[targetLang] || 'sql';
+      try { await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId); } catch { try { await vscode.languages.setTextDocumentLanguage(doc, 'sql'); } catch {} }
+    }
     await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
   }
 }
@@ -448,7 +502,7 @@ async function handleSearch(allProblemsProvider: AllProblemsTreeDataProvider): P
  * @param filePath - Absolute path to the active solution file.
  * @returns The parsed problem metadata, or null.
  */
-function readProblemMetadata(filePath: string): ProblemMetadata | null {
+export function readProblemMetadata(filePath: string): ProblemMetadata | null {
   const dir = path.dirname(filePath);
   const metadataPath = path.join(dir, '.metadata.json');
 
@@ -472,7 +526,7 @@ function readProblemMetadata(filePath: string): ProblemMetadata | null {
  * @param fallback - Fallback test case string from metadata.
  * @returns The test cases string.
  */
-function readTestCases(filePath: string, fallback: string): string {
+export function readTestCases(filePath: string, fallback: string): string {
   const dir = path.dirname(filePath);
   const testcasesPath = path.join(dir, 'testcases.txt');
 
@@ -536,7 +590,7 @@ function writeInputLineCountCache(globalStoragePath: string, slug: string, count
  *
  * @param metaDataStr - The raw metaData JSON string from the API.
  */
-function deriveFromMetaData(metaDataStr: string | undefined): number | null {
+export function deriveFromMetaData(metaDataStr: string | undefined): number | null {
   if (metaDataStr === undefined || metaDataStr === '') {
     return null;
   }
@@ -558,7 +612,7 @@ function deriveFromMetaData(metaDataStr: string | undefined): number | null {
  * @param content - The problem's HTML content string.
  * @param exampleTestcases - The raw exampleTestcases string from the API.
  */
-function deriveFromHtmlContent(
+export function deriveFromHtmlContent(
   content: string | undefined,
   exampleTestcases: string | undefined,
 ): number | null {
@@ -604,7 +658,7 @@ function deriveFromHtmlContent(
  * @param details - The fetched problem details.
  * @returns The resolved inputLineCount.
  */
-function resolveInputLineCount(globalStoragePath: string, details: ProblemDetails): number {
+export function resolveInputLineCount(globalStoragePath: string, details: ProblemDetails): number {
   // 1. Check global cache
   const cache = readInputLineCountCache(globalStoragePath);
   const cached = cache[details.titleSlug];
@@ -640,7 +694,7 @@ function resolveInputLineCount(globalStoragePath: string, details: ProblemDetail
  * @param linesPerCase - Number of input lines per test case (from inputLineCount).
  * @returns An array of test input strings, one per case.
  */
-function parseTestInputs(testCaseStr: string, linesPerCase: number): string[] {
+export function parseTestInputs(testCaseStr: string, linesPerCase: number): string[] {
   const lines = testCaseStr.split('\n').filter((line) => line.trim() !== '');
   if (linesPerCase <= 0 || lines.length === 0) {
     return [];
@@ -662,7 +716,7 @@ function parseTestInputs(testCaseStr: string, linesPerCase: number): string[] {
  * @param raw - The raw result from LeetCode's check endpoint.
  * @returns A normalized result safe for property access.
  */
-function normalizeResult(raw: SubmissionCheckResult): SubmissionCheckResult {
+export function normalizeResult(raw: SubmissionCheckResult): SubmissionCheckResult {
   return {
     state: raw.state ?? 'UNKNOWN',
     status_code: raw.status_code ?? 0,
@@ -957,8 +1011,19 @@ async function handleChangeLanguage(
     matchOnDescription: true,
   });
 
-  if (!selected || selected.value === metadata.lang) {
+  if (!selected) {
     return;
+  }
+
+  if (selected.value === metadata.lang) {
+    const confirm = await vscode.window.showWarningMessage(
+      `Do you want to reset the editor to the default ${selected.label} snippet? This will overwrite your current code.`,
+      { modal: true },
+      'Reset'
+    );
+    if (confirm !== 'Reset') {
+      return;
+    }
   }
 
   const newLang = selected.value;
@@ -985,6 +1050,10 @@ async function handleChangeLanguage(
     rust: 'rs',
     ruby: 'rb',
     php: 'php',
+    mysql: 'sql',
+    mssql: 'sql',
+    oraclesql: 'sql',
+    postgresql: 'sql',
   };
 
   const ext = extMap[newLang] !== undefined ? extMap[newLang] : 'txt';
@@ -994,9 +1063,30 @@ async function handleChangeLanguage(
   const snippet = details.codeSnippets.find((s) => s.langSlug === newLang);
   const codeSnippet = snippet !== undefined ? snippet.code : '';
 
+  const dbLangs = ['mysql', 'mssql', 'oraclesql', 'postgresql'];
+  if (dbLangs.includes(newLang)) {
+    await config.update('defaultDbLanguage', newLang, vscode.ConfigurationTarget.Global);
+  } else {
+    await config.update('defaultLanguage', newLang, vscode.ConfigurationTarget.Global);
+  }
+
   if (!fs.existsSync(newFilePath)) {
     const wrappedCode = BoilerplateManager.wrapWithBoilerplate(newLang, codeSnippet);
     fs.writeFileSync(newFilePath, wrappedCode, 'utf-8');
+  } else if (newFilePath === filePath) {
+    const wrappedCode = BoilerplateManager.wrapWithBoilerplate(newLang, codeSnippet);
+    const visibleEditor = vscode.window.visibleTextEditors.find(e => e.document.uri.fsPath === newFilePath);
+    if (visibleEditor) {
+      const edit = new vscode.WorkspaceEdit();
+      const fullRange = new vscode.Range(
+        visibleEditor.document.positionAt(0),
+        visibleEditor.document.positionAt(visibleEditor.document.getText().length)
+      );
+      edit.replace(visibleEditor.document.uri, fullRange, wrappedCode);
+      await vscode.workspace.applyEdit(edit);
+    } else {
+      fs.writeFileSync(newFilePath, wrappedCode, 'utf-8');
+    }
   }
 
   // Update metadata with new language
@@ -1010,6 +1100,16 @@ async function handleChangeLanguage(
 
   // Open the new file
   const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(newFilePath));
+  if (ext === 'sql') {
+    const vscodeLangMap: Record<string, string> = {
+      mysql: 'mysql',
+      postgresql: 'postgres',
+      mssql: 'sql',
+      oraclesql: 'oraclesql'
+    };
+    const vscodeLangId = vscodeLangMap[newLang] || 'sql';
+    try { await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId); } catch { try { await vscode.languages.setTextDocumentLanguage(doc, 'sql'); } catch {} }
+  }
   await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
 
   void vscode.window.showInformationMessage(`Language switched to ${selected.label}.`);
@@ -1162,7 +1262,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   updateLeetCodeEditorContext(vscode.window.activeTextEditor);
 
   // Handle messages from the test results webview
-  testResultsPanel.onMessage((message: any) => {
+  testResultsPanel.onMessage((message: { command: string; input?: unknown }) => {
     if (message.command === 'openProblemStatement') {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
@@ -1186,7 +1286,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (fs.existsSync(testcasesPath)) {
         existing = fs.readFileSync(testcasesPath, 'utf-8');
       }
-      const inputStr = message.input as string;
+      const inputStr = typeof message.input === 'string' ? message.input : String(message.input || '');
       const existingLines = existing
         .split('\n')
         .map((l) => l.trim())
