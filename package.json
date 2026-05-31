@@ -108,6 +108,16 @@
       {
         "command": "better-leetcode.showLogs",
         "title": "Better LeetCode: Show Logs"
+      },
+      {
+        "command": "better-leetcode.fullRefreshProblems",
+        "title": "Better LeetCode: Full Refresh Problems List",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "better-leetcode.deleteCache",
+        "title": "Better LeetCode: Delete Problem Cache",
+        "icon": "$(trash)"
       }
     ],
     "menus": {

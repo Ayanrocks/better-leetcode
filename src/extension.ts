@@ -1065,7 +1065,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     dailyChallengeProvider,
   );
 
-  const allProblemsProvider = new AllProblemsTreeDataProvider(authManager, context);
+  const allProblemsProvider = new AllProblemsTreeDataProvider(authManager);
   vscode.window.registerTreeDataProvider('better-leetcode.views.allProblems', allProblemsProvider);
 
   const studyListsProvider = new StudyListsTreeDataProvider(authManager);
@@ -1115,10 +1115,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void handleSubmitSolution(authManager, testResultsPanel);
     }),
     vscode.commands.registerCommand('better-leetcode.refresh', () => {
-      logger.debug('extension', 'Manual refresh triggered');
+      logger.debug('extension', 'Manual refresh triggered (incremental)');
       dailyChallengeProvider.refresh();
-      allProblemsProvider.refresh(false);
+      allProblemsProvider.refresh();
       studyListsProvider.refresh();
+    }),
+    vscode.commands.registerCommand('better-leetcode.fullRefreshProblems', () => {
+      logger.info('extension', 'Full refresh triggered — clearing disk cache');
+      allProblemsProvider.fullRefresh();
+    }),
+    vscode.commands.registerCommand('better-leetcode.deleteCache', () => {
+      allProblemsProvider.deleteCache();
+      void vscode.window.showInformationMessage(
+        `Problem cache deleted: ${allProblemsProvider.getCacheFilePath()}`,
+      );
     }),
     vscode.commands.registerCommand('better-leetcode.showLogs', () => {
       logger.show();

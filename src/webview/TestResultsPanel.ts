@@ -237,12 +237,21 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
     if (hasError) {
       isAccepted = false;
+      displayStatusMsg = result.status_msg || 'Error';
     } else if (data.type === 'test') {
-      isAccepted = totalCases > 0 && totalCorrect === totalCases;
-      displayStatusMsg = isAccepted ? 'Accepted' : 'Wrong Answer';
+      if (result.status_code === 10) {
+        // Status 10 indicates the code ran successfully. We determine correctness by comparing answers.
+        isAccepted = totalCases > 0 && totalCorrect === totalCases;
+        displayStatusMsg = isAccepted ? 'Accepted' : 'Wrong Answer';
+      } else {
+        // Other statuses (like TLE - 14, MLE - 15) indicate a failure to complete execution.
+        isAccepted = false;
+        displayStatusMsg = result.status_msg || 'Error';
+      }
       statusColor = isAccepted ? '#2cbb5d' : '#ef4743'; // Green for Accepted, Red for WA
     } else {
       isAccepted = result.status_code === 10 || result.status_msg === 'Accepted';
+      displayStatusMsg = result.status_msg || (isAccepted ? 'Accepted' : 'Wrong Answer');
     }
 
     const statusIcon = isAccepted ? '✅' : '❌';
@@ -530,7 +539,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   </style>
 </head>
 <body>
-  <div class="container${(hasError && !hasCases) || (!hasCases && data.type === 'submit' && isAccepted) ? ' no-sidebar' : ''}" id="root">
+  <div class="container${!hasCases ? ' no-sidebar' : ''}" id="root">
     <div class="sidebar">
       <div class="sidebar-header">Test Cases</div>
       ${this.buildCaseListHtmlFromCases(cases, statusColor)}
@@ -834,9 +843,21 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       // Failed submission: show the first failing case from scalar fields
       const failInput = result.last_testcase ?? '';
       const failExpected = result.expected_output ?? '';
-      // code_output may contain the actual output for the failing case
-      const failOutput = codeOutput.length > 0 ? (codeOutput[0] ?? '') : '';
-      const failStdout = stdOutputList.length > 0 ? (stdOutputList[0] ?? '') : '';
+      
+      // code_output may be a string (submit flow) or an array of strings (test flow)
+      let failOutput = '';
+      if (typeof result.code_output === 'string') {
+        failOutput = result.code_output;
+      } else if (Array.isArray(result.code_output) && result.code_output.length > 0) {
+        failOutput = result.code_output[0] ?? '';
+      }
+
+      let failStdout = '';
+      if (typeof result.std_output_list === 'string') {
+        failStdout = result.std_output_list;
+      } else if (Array.isArray(result.std_output_list) && result.std_output_list.length > 0) {
+        failStdout = result.std_output_list[0] ?? '';
+      }
 
       return [
         {

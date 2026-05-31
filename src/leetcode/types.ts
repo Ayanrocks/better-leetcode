@@ -132,7 +132,7 @@ export interface SubmissionCheckResult {
   code_answer: string[];
   expected_answer: string[];
   expected_code_answer?: string[];
-  code_output: string[];
+  code_output: string | string[];
   std_output_list: string[];
   compile_error: string;
   full_compile_error: string;
