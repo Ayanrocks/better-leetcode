@@ -19,4 +19,7 @@ export type {
   StudyPlanQuestion,
   StudyPlanSubGroup,
   StudyPlanDetails,
+  LeetCodeContest,
+  ContestQuestion,
+  ContestInfo,
 } from './types';

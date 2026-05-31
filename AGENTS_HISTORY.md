@@ -1,5 +1,18 @@
 # Agent History
 
+## 2026-05-31: Contests Section in Sidebar
+
+**Problem**: Add a new "Contests" section in the sidebar to fetch past contests and their corresponding questions.
+
+**Changes**:
+- `types.ts`/`index.ts`: Added types `LeetCodeContest`, `ContestQuestion`, and `ContestInfo`.
+- `client.ts`: Implemented `getContests()` using GraphQL query (with fallback) and `getContestInfo()` using REST API endpoint. Updated client-wide User-Agent to Firefox to bypass Cloudflare 403 Forbidden on REST requests.
+- `ContestsTreeDataProvider.ts`: Created new tree data provider rendering last 5 contests (collapsible) and their 4 problems. Cross-references solve status with `AllProblemsTreeDataProvider` cache.
+- `extension.ts`/`package.json`: Registered view `better-leetcode.views.contests` and hooked up refresh actions.
+- `leetcode.test.ts`: Added unit tests for contest API queries.
+
+**Status**: Build and all 16 tests pass. Contests section is fully functional.
+
 ## 2026-05-31: Cache Refresh Fix & Relocation
 
 **Problem**: New LeetCode problems (#3945) not appearing after sidebar refresh. Cache stale at #3944.

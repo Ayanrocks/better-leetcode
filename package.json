@@ -42,6 +42,10 @@
         {
           "id": "better-leetcode.views.studyLists",
           "name": "Study Lists"
+        },
+        {
+          "id": "better-leetcode.views.contests",
+          "name": "Contests"
         }
       ],
       "better-leetcode-results": [
@@ -151,7 +155,7 @@
       "view/title": [
         {
           "command": "better-leetcode.refresh",
-          "when": "view == better-leetcode.views.dailyChallenge || view == better-leetcode.views.allProblems || view == better-leetcode.views.studyLists",
+          "when": "view == better-leetcode.views.dailyChallenge || view == better-leetcode.views.allProblems || view == better-leetcode.views.studyLists || view == better-leetcode.views.contests",
           "group": "navigation@1"
         },
         {

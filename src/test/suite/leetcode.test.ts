@@ -184,6 +184,116 @@ suite('LeetCode Module Test Suite', () => {
       assert.strictEqual(tags[0]!.name, 'Array');
       assert.strictEqual(tags[1]!.name, 'Hash Table');
     });
+
+    test('Should fetch contests list successfully', async () => {
+      const client = new LeetCodeClient();
+      const mockContests = [
+        {
+          titleSlug: 'weekly-contest-504',
+          title: 'Weekly Contest 504',
+          startTime: 1779802484,
+          duration: 5400,
+        },
+      ];
+
+      fetchMock = (_url, init) => {
+        const bodyStr = init?.body as string;
+        assert.ok(bodyStr.includes('contestV2HistoryContests'));
+        return Promise.resolve(
+          createMockResponse({
+            data: {
+              contestV2HistoryContests: {
+                contests: mockContests,
+              },
+            },
+          }),
+        );
+      };
+
+      const contests = await client.getContests(5);
+      assert.strictEqual(contests.length, 1);
+      assert.ok(contests[0]);
+      assert.strictEqual(contests[0]!.titleSlug, 'weekly-contest-504');
+    });
+
+    test('Should fall back to contestV2PastContest query on getContests primary query failure', async () => {
+      const client = new LeetCodeClient();
+      const mockFallbackContests = [
+        {
+          titleSlug: 'weekly-contest-fallback',
+          title: 'Weekly Contest Fallback',
+          startTime: 1779802484,
+          duration: 5400,
+        },
+      ];
+
+      let callsCount = 0;
+      fetchMock = (_url, init) => {
+        callsCount++;
+        const bodyStr = init?.body as string;
+        if (bodyStr.includes('contestV2HistoryContests')) {
+          return Promise.reject(new Error('GraphQL Error'));
+        }
+        if (bodyStr.includes('contestV2PastContest')) {
+          return Promise.resolve(
+            createMockResponse({
+              data: {
+                contestV2PastLlmContest: mockFallbackContests,
+              },
+            }),
+          );
+        }
+        return Promise.reject(new Error('Unexpected fetch'));
+      };
+
+      const contests = await client.getContests(5);
+      assert.strictEqual(contests.length, 1);
+      assert.ok(contests[0]);
+      assert.strictEqual(contests[0]!.titleSlug, 'weekly-contest-fallback');
+      assert.strictEqual(callsCount, 2);
+    });
+
+    test('Should fetch contest info and questions successfully via GraphQL', async () => {
+      const client = new LeetCodeClient();
+
+      fetchMock = (url, init) => {
+        const urlStr = typeof url === 'string' ? url : url.toString();
+        assert.ok(urlStr.includes('/graphql/'));
+        const bodyStr = init?.body as string;
+        assert.ok(bodyStr.includes('contest'));
+        assert.ok(bodyStr.includes('weekly-contest-504'));
+        return Promise.resolve(
+          createMockResponse({
+            data: {
+              contest: {
+                title: 'Weekly Contest 504',
+                titleSlug: 'weekly-contest-504',
+                description: 'A weekly contest',
+                startTime: 1779802484,
+                duration: 5400,
+                questions: [
+                  {
+                    title: 'Q1 Title',
+                    titleSlug: 'q1-slug',
+                    credit: 3,
+                    questionId: '1001',
+                  },
+                ],
+              },
+            },
+          }),
+        );
+      };
+
+      const info = await client.getContestInfo('weekly-contest-504');
+      assert.strictEqual(info.contest.title, 'Weekly Contest 504');
+      assert.strictEqual(info.contest.title_slug, 'weekly-contest-504');
+      assert.strictEqual(info.questions.length, 1);
+      assert.ok(info.questions[0]);
+      assert.strictEqual(info.questions[0]!.title_slug, 'q1-slug');
+      assert.strictEqual(info.questions[0]!.question_id, 1001);
+      assert.strictEqual(info.questions[0]!.credit, 3);
+    });
   });
 
   suite('LeetCodeAuthManager', () => {

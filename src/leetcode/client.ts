@@ -10,6 +10,8 @@ import {
   InterpretResponse,
   SubmitResponse,
   SubmissionCheckResult,
+  LeetCodeContest,
+  ContestInfo,
 } from './types';
 import { Logger } from '../logger';
 
@@ -53,6 +55,8 @@ export function parseCookies(cookieString: string): LeetCodeCookies | undefined 
  * Client for interacting with the LeetCode GraphQL API.
  */
 export class LeetCodeClient {
+  private static readonly USER_AGENT =
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:151.0) Gecko/20100101 Firefox/151.0';
   private endpoint = 'https://leetcode.com';
   private cookies: LeetCodeCookies | undefined;
 
@@ -110,9 +114,7 @@ export class LeetCodeClient {
     const url = `${this.endpoint}/graphql/`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
-        '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'User-Agent': LeetCodeClient.USER_AGENT,
       Referer: this.endpoint,
       Origin: this.endpoint,
     };
@@ -389,7 +391,7 @@ export class LeetCodeClient {
               titleSlug
               difficulty
               questionFrontendId
-              paidOnly: isPaidOnly
+              paidOnly
               status
             }
           }
@@ -467,9 +469,7 @@ export class LeetCodeClient {
   private buildRestHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
-        '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'User-Agent': LeetCodeClient.USER_AGENT,
       Referer: this.endpoint,
       Origin: this.endpoint,
     };
@@ -636,4 +636,110 @@ export class LeetCodeClient {
     });
     throw new Error('Submission check timed out after 30 attempts. Please try again.');
   }
+
+  /**
+   * Fetches the list of past contests.
+   * Uses contestV2HistoryContests GraphQL query, and falls back to
+   * contestV2PastContest if empty or failing.
+   */
+  public async getContests(limit: number = 5): Promise<LeetCodeContest[]> {
+    try {
+      const queryStr = `
+        query contestV2HistoryContests($skip: Int!, $limit: Int!) {
+          contestV2HistoryContests(skip: $skip, limit: $limit) {
+            totalNum
+            contests {
+              titleSlug
+              title
+              titleCn
+              startTime
+              duration
+              cardImg
+              cardImgApp
+              companyWatermark
+              solved
+              totalQuestions
+            }
+          }
+        }
+      `;
+      const data = await this.query<{
+        contestV2HistoryContests: { contests: LeetCodeContest[] } | null;
+      }>(queryStr, { skip: 0, limit });
+      if (data?.contestV2HistoryContests?.contests && data.contestV2HistoryContests.contests.length > 0) {
+        return data.contestV2HistoryContests.contests;
+      }
+    } catch (err) {
+      Logger.getInstance().warn('api', 'contestV2HistoryContests query failed, attempting fallback', err);
+    }
+
+    // Fallback query
+    const fallbackQuery = `
+      query contestV2PastContest {
+        contestV2PastLlmContest {
+          titleSlug
+          title
+          titleCn
+          startTime
+          duration
+          cardImg
+          cardImgApp
+        }
+      }
+    `;
+    const fallbackData = await this.query<{
+      contestV2PastLlmContest: LeetCodeContest[] | null;
+    }>(fallbackQuery);
+    return fallbackData?.contestV2PastLlmContest ?? [];
+  }
+
+  /**
+   * Fetches info and questions for a specific contest.
+   */
+  public async getContestInfo(contestSlug: string): Promise<ContestInfo> {
+    const queryStr = `
+      query contest($contestSlug: String!) {
+        contest(titleSlug: $contestSlug) {
+          title
+          titleSlug
+          description
+          startTime
+          duration
+          questions {
+            title
+            titleSlug
+            credit
+            questionId
+          }
+        }
+      }
+    `;
+
+    Logger.getInstance().debug('api', `Fetching contest info: ${contestSlug}`);
+    const data = await this.query<any>(queryStr, { contestSlug });
+
+    if (!data || !data.contest) {
+      throw new Error(`Contest info request failed for ${contestSlug}`);
+    }
+
+    const contestData = data.contest;
+    
+    // Map GraphQL response to the expected ContestInfo structure
+    return {
+      contest: {
+        title: contestData.title || '',
+        title_slug: contestData.titleSlug || contestSlug,
+        description: contestData.description || '',
+        start_time: contestData.startTime || 0,
+        duration: contestData.duration || 0,
+      },
+      questions: (contestData.questions || []).map((q: any) => ({
+        question_id: q.questionId ? parseInt(q.questionId, 10) : 0,
+        credit: q.credit || 0,
+        title: q.title || '',
+        title_slug: q.titleSlug || '',
+      })),
+    };
+  }
 }
+

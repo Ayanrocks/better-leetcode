@@ -6,6 +6,7 @@ import { LeetCodeStatusBarController } from './statusBar';
 import { DailyChallengeTreeDataProvider } from './tree/DailyChallengeTreeDataProvider';
 import { AllProblemsTreeDataProvider } from './tree/AllProblemsTreeDataProvider';
 import { StudyListsTreeDataProvider } from './tree/StudyListsTreeDataProvider';
+import { ContestsTreeDataProvider } from './tree/ContestsTreeDataProvider';
 import { ProblemWebview } from './webview/ProblemWebview';
 import { TestResultsPanel } from './webview/TestResultsPanel';
 import { ProblemDetails, ProblemMetaData, SubmissionCheckResult } from './leetcode/types';
@@ -1071,6 +1072,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const studyListsProvider = new StudyListsTreeDataProvider(authManager);
   vscode.window.registerTreeDataProvider('better-leetcode.views.studyLists', studyListsProvider);
 
+  const contestsProvider = new ContestsTreeDataProvider(authManager, allProblemsProvider);
+  vscode.window.registerTreeDataProvider('better-leetcode.views.contests', contestsProvider);
+
   // Register Test Results Panel
   const testResultsPanel = new TestResultsPanel(context.extensionUri);
   context.subscriptions.push(
@@ -1119,6 +1123,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       dailyChallengeProvider.refresh();
       allProblemsProvider.refresh();
       studyListsProvider.refresh();
+      contestsProvider.refresh();
     }),
     vscode.commands.registerCommand('better-leetcode.fullRefreshProblems', () => {
       logger.info('extension', 'Full refresh triggered — clearing disk cache');

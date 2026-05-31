@@ -153,3 +153,36 @@ export interface ProblemMetaData {
   params: Array<{ name: string; type: string }>;
   return: { type: string };
 }
+
+export interface LeetCodeContest {
+  titleSlug: string;
+  title: string;
+  titleCn?: string | null;
+  startTime: number;
+  duration: number;
+  cardImg?: string | null;
+  cardImgApp?: string | null;
+  companyWatermark?: string | null;
+  solved?: number | null;
+  totalQuestions?: number | null;
+}
+
+export interface ContestQuestion {
+  question_id: number;
+  title: string;
+  title_slug: string;
+  difficulty: number;
+  credit: number;
+}
+
+export interface ContestInfo {
+  contest: {
+    title: string;
+    title_slug: string;
+    description: string;
+    start_time: number;
+    duration: number;
+  };
+  questions: ContestQuestion[];
+}
+
