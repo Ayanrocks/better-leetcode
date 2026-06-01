@@ -26,7 +26,7 @@ Better LeetCode brings the full LeetCode experience directly into your IDE with 
 - **Daily Problems**: Quickly fetch and solve the daily LeetCode challenge with a single click.
 
 ### Screenshot
-![Better Leetcode Interface](assets/screenshot.png)
+![Demo Video](resources/Better-Leetcode-demo.gif)
 
 ---
 
