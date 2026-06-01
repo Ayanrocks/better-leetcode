@@ -4,8 +4,8 @@
   <p>A robust, flexible, and modern VS Code extension designed to streamline solving LeetCode problems directly from your editor.</p>
   
   <p>
-    <a href="https://marketplace.visualstudio.com/items?itemName=better-leetcode-team.better-leetcode"><img src="https://img.shields.io/visual-studio-marketplace/v/better-leetcode-team.better-leetcode?style=for-the-badge&color=007acc&logo=visualstudiocode" alt="VS Marketplace Version"></a>
-    <a href="https://marketplace.visualstudio.com/items?itemName=better-leetcode-team.better-leetcode"><img src="https://img.shields.io/visual-studio-marketplace/i/better-leetcode-team.better-leetcode?style=for-the-badge&color=FFA116&logo=visualstudiocode" alt="Installs"></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=ayanrocks.better-leetcode"><img src="https://img.shields.io/badge/version-v1.0.0-007acc?style=for-the-badge&logo=visualstudiocode" alt="VS Marketplace Version"></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=ayanrocks.better-leetcode"><img src="https://img.shields.io/visual-studio-marketplace/i/ayanrocks.better-leetcode?style=for-the-badge&color=FFA116&logo=visualstudiocode" alt="Installs"></a>
     <img src="https://img.shields.io/badge/License-MIT-282828?style=for-the-badge" alt="License">
     <a href="https://buymeacoffee.com/banerjeeayan"><img src="https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee"></a>
   </p>
