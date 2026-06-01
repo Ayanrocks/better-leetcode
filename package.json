@@ -3,11 +3,12 @@
   "displayName": "Better Leetcode",
   "description": "A flexible and robust VS Code extension for solving Leetcode problems.",
   "version": "1.0.0",
-  "publisher": "better-leetcode-team",
+  "publisher": "ayanrocks",
+  "repository": "https://github.com/Ayanrocks/better-leetcode",
   "sponsor": {
     "url": "https://buymeacoffee.com/banerjeeayan"
   },
-  "icon": "resources/better-leetcode-logo.svg",
+  "icon": "resources/better-leetcode-logo.png",
   "engines": {
     "vscode": "^1.90.0"
   },

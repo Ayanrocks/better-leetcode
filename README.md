@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="resources/better-leetcode-logo.svg" alt="Better LeetCode Logo" width="128" height="128">
+  <img src="resources/better-leetcode-logo.png" alt="Better LeetCode Logo" width="128" height="128">
   <h1>Better LeetCode</h1>
   <p>A robust, flexible, and modern VS Code extension designed to streamline solving LeetCode problems directly from your editor.</p>
   
