@@ -52,7 +52,7 @@ suite('Extension Test Suite', () => {
     test('normalizeResult provides safe defaults', () => {
       const raw: any = { state: 'PENDING' };
       const normalized = normalizeResult(raw);
-      
+
       assert.strictEqual(normalized.state, 'PENDING');
       assert.strictEqual(normalized.status_code, 0);
       assert.strictEqual(normalized.status_msg, 'Unknown');
@@ -87,13 +87,13 @@ suite('Extension Test Suite', () => {
       assert.strictEqual(deriveFromMetaData(''), null);
       assert.strictEqual(deriveFromMetaData(undefined), null);
       assert.strictEqual(deriveFromMetaData('invalid json'), null);
-      
+
       const meta = JSON.stringify({ params: [{ name: 'a', type: 'int' }] });
       assert.strictEqual(deriveFromMetaData(meta), 1);
 
       const meta3 = JSON.stringify({ params: [1, 2, 3] });
       assert.strictEqual(deriveFromMetaData(meta3), 3);
-      
+
       const metaEmpty = JSON.stringify({ params: [] });
       assert.strictEqual(deriveFromMetaData(metaEmpty), null);
     });

@@ -42,7 +42,11 @@ class StudyPlanProblemItem extends vscode.TreeItem {
       vscode.TreeItemCollapsibleState.None,
     );
     this.description = StudyPlanProblemItem.getDifficultyDescription(question.difficulty);
-    this.iconPath = StudyPlanProblemItem.getDifficultyIcon(question.difficulty, question.status, question.paidOnly);
+    this.iconPath = StudyPlanProblemItem.getDifficultyIcon(
+      question.difficulty,
+      question.status,
+      question.paidOnly,
+    );
     this.command = {
       command: 'better-leetcode.openProblem',
       title: 'Open Problem',
@@ -53,14 +57,22 @@ class StudyPlanProblemItem extends vscode.TreeItem {
   private static getDifficultyDescription(difficulty: string): string {
     const diff = difficulty.toUpperCase();
     switch (diff) {
-      case 'EASY': return 'Easy';
-      case 'MEDIUM': return 'Medium';
-      case 'HARD': return 'Hard';
-      default: return difficulty;
+      case 'EASY':
+        return 'Easy';
+      case 'MEDIUM':
+        return 'Medium';
+      case 'HARD':
+        return 'Hard';
+      default:
+        return difficulty;
     }
   }
 
-  private static getDifficultyIcon(difficulty: string, status?: string | null, paidOnly?: boolean): vscode.ThemeIcon {
+  private static getDifficultyIcon(
+    difficulty: string,
+    status?: string | null,
+    paidOnly?: boolean,
+  ): vscode.ThemeIcon {
     if (status === 'ac') {
       return new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
     }
@@ -68,10 +80,18 @@ class StudyPlanProblemItem extends vscode.TreeItem {
     const diff = difficulty.toUpperCase();
     let colorId: string;
     switch (diff) {
-      case 'EASY': colorId = 'charts.green'; break;
-      case 'MEDIUM': colorId = 'charts.yellow'; break;
-      case 'HARD': colorId = 'charts.red'; break;
-      default: colorId = 'foreground'; break;
+      case 'EASY':
+        colorId = 'charts.green';
+        break;
+      case 'MEDIUM':
+        colorId = 'charts.yellow';
+        break;
+      case 'HARD':
+        colorId = 'charts.red';
+        break;
+      default:
+        colorId = 'foreground';
+        break;
     }
 
     if (paidOnly) {
@@ -124,7 +144,10 @@ export class StudyListsTreeDataProvider implements vscode.TreeDataProvider<vscod
         return questions.map((q) => new StudyPlanProblemItem(q));
       } catch (err) {
         Logger.getInstance().error('tree', `Failed to load favorite list: ${element.slug}`, err);
-        const errItem = new vscode.TreeItem('Error loading list', vscode.TreeItemCollapsibleState.None);
+        const errItem = new vscode.TreeItem(
+          'Error loading list',
+          vscode.TreeItemCollapsibleState.None,
+        );
         errItem.description = String(err);
         return [errItem];
       }

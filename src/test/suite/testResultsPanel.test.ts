@@ -155,7 +155,10 @@ suite('TestResultsPanel Test Suite', () => {
   suite('escapeHtml', () => {
     test('escapes special characters', () => {
       const escaped = panel.escapeHtml('<div>"test" & \'value\'</div>');
-      assert.strictEqual(escaped, '&lt;div&gt;&quot;test&quot; &amp; &#039;value&#039;&lt;/div&gt;');
+      assert.strictEqual(
+        escaped,
+        '&lt;div&gt;&quot;test&quot; &amp; &#039;value&#039;&lt;/div&gt;',
+      );
     });
   });
 });

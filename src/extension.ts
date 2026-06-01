@@ -228,7 +228,7 @@ async function handleOpenProblem(
   context: vscode.ExtensionContext,
   problemSlug: string,
   preferredLang?: string,
-  showEditorIfAlreadyOpen: boolean = true
+  showEditorIfAlreadyOpen: boolean = true,
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration('better-leetcode');
   let storagePath = config.get<string>('storagePath');
@@ -307,7 +307,7 @@ async function handleOpenProblem(
     const status = authManager.getStatus();
     if (!status?.isPremium) {
       void vscode.window.showErrorMessage(
-        `"${details.title}" is a premium problem. Please upgrade to LeetCode Premium to view it.`
+        `"${details.title}" is a premium problem. Please upgrade to LeetCode Premium to view it.`,
       );
       return;
     }
@@ -341,16 +341,18 @@ async function handleOpenProblem(
 
   let targetLang = defaultLanguage;
   const dbLangs = ['mysql', 'mssql', 'oraclesql', 'postgresql'];
-  
+
   if (details.codeSnippets.length > 0) {
-    const hasDefaultLang = details.codeSnippets.some(s => s.langSlug === defaultLanguage);
+    const hasDefaultLang = details.codeSnippets.some((s) => s.langSlug === defaultLanguage);
     if (!hasDefaultLang) {
-      const hasDbLangs = details.codeSnippets.some(s => dbLangs.includes(s.langSlug));
+      const hasDbLangs = details.codeSnippets.some((s) => dbLangs.includes(s.langSlug));
       if (hasDbLangs) {
-        if (details.codeSnippets.some(s => s.langSlug === defaultDbLanguage)) {
+        if (details.codeSnippets.some((s) => s.langSlug === defaultDbLanguage)) {
           targetLang = defaultDbLanguage;
         } else {
-          targetLang = details.codeSnippets.find(s => dbLangs.includes(s.langSlug))?.langSlug || details.codeSnippets[0].langSlug;
+          targetLang =
+            details.codeSnippets.find((s) => dbLangs.includes(s.langSlug))?.langSlug ||
+            details.codeSnippets[0].langSlug;
         }
       } else {
         targetLang = details.codeSnippets[0].langSlug;
@@ -442,10 +444,16 @@ async function handleOpenProblem(
           mysql: 'mysql',
           postgresql: 'postgres',
           mssql: 'sql',
-          oraclesql: 'oraclesql'
+          oraclesql: 'oraclesql',
         };
         const vscodeLangId = vscodeLangMap[targetLang] || 'sql';
-        try { await vscode.languages.setTextDocumentLanguage(existingDoc, vscodeLangId); } catch { try { await vscode.languages.setTextDocumentLanguage(existingDoc, 'sql'); } catch {} }
+        try {
+          await vscode.languages.setTextDocumentLanguage(existingDoc, vscodeLangId);
+        } catch {
+          try {
+            await vscode.languages.setTextDocumentLanguage(existingDoc, 'sql');
+          } catch {}
+        }
       }
     }
   } else {
@@ -455,10 +463,16 @@ async function handleOpenProblem(
         mysql: 'mysql',
         postgresql: 'postgres',
         mssql: 'sql',
-        oraclesql: 'oraclesql'
+        oraclesql: 'oraclesql',
       };
       const vscodeLangId = vscodeLangMap[targetLang] || 'sql';
-      try { await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId); } catch { try { await vscode.languages.setTextDocumentLanguage(doc, 'sql'); } catch {} }
+      try {
+        await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId);
+      } catch {
+        try {
+          await vscode.languages.setTextDocumentLanguage(doc, 'sql');
+        } catch {}
+      }
     }
     await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
   }
@@ -1019,7 +1033,7 @@ async function handleChangeLanguage(
     const confirm = await vscode.window.showWarningMessage(
       `Do you want to reset the editor to the default ${selected.label} snippet? This will overwrite your current code.`,
       { modal: true },
-      'Reset'
+      'Reset',
     );
     if (confirm !== 'Reset') {
       return;
@@ -1075,12 +1089,14 @@ async function handleChangeLanguage(
     fs.writeFileSync(newFilePath, wrappedCode, 'utf-8');
   } else if (newFilePath === filePath) {
     const wrappedCode = BoilerplateManager.wrapWithBoilerplate(newLang, codeSnippet);
-    const visibleEditor = vscode.window.visibleTextEditors.find(e => e.document.uri.fsPath === newFilePath);
+    const visibleEditor = vscode.window.visibleTextEditors.find(
+      (e) => e.document.uri.fsPath === newFilePath,
+    );
     if (visibleEditor) {
       const edit = new vscode.WorkspaceEdit();
       const fullRange = new vscode.Range(
         visibleEditor.document.positionAt(0),
-        visibleEditor.document.positionAt(visibleEditor.document.getText().length)
+        visibleEditor.document.positionAt(visibleEditor.document.getText().length),
       );
       edit.replace(visibleEditor.document.uri, fullRange, wrappedCode);
       await vscode.workspace.applyEdit(edit);
@@ -1105,14 +1121,82 @@ async function handleChangeLanguage(
       mysql: 'mysql',
       postgresql: 'postgres',
       mssql: 'sql',
-      oraclesql: 'oraclesql'
+      oraclesql: 'oraclesql',
     };
     const vscodeLangId = vscodeLangMap[newLang] || 'sql';
-    try { await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId); } catch { try { await vscode.languages.setTextDocumentLanguage(doc, 'sql'); } catch {} }
+    try {
+      await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId);
+    } catch {
+      try {
+        await vscode.languages.setTextDocumentLanguage(doc, 'sql');
+      } catch {}
+    }
   }
   await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
 
   void vscode.window.showInformationMessage(`Language switched to ${selected.label}.`);
+}
+
+/**
+ * Handles changing the default language configuration.
+ */
+async function handleChangeDefaultLanguage(): Promise<void> {
+  const config = vscode.workspace.getConfiguration('better-leetcode');
+  const currentLang = config.get<string>('defaultLanguage', '');
+  const langs = [
+    'cpp',
+    'java',
+    'python3',
+    'python',
+    'javascript',
+    'typescript',
+    'csharp',
+    'c',
+    'golang',
+    'kotlin',
+    'swift',
+    'rust',
+    'ruby',
+    'php',
+  ];
+  const items = langs.map((lang) => ({
+    label: lang,
+    description: lang === currentLang ? '(current default)' : '',
+    value: lang,
+  }));
+
+  const selected = await vscode.window.showQuickPick(items, {
+    placeHolder: `Current: ${currentLang || 'None'} — Select a new default language`,
+  });
+
+  if (selected) {
+    await config.update('defaultLanguage', selected.value, vscode.ConfigurationTarget.Global);
+    void vscode.window.showInformationMessage(`Default language set to ${selected.label}.`);
+  }
+}
+
+/**
+ * Handles changing the default SQL language configuration.
+ */
+async function handleChangeDefaultDbLanguage(): Promise<void> {
+  const config = vscode.workspace.getConfiguration('better-leetcode');
+  const currentDbLang = config.get<string>('defaultDbLanguage', 'mysql');
+  const dbLangs = ['mysql', 'mssql', 'oraclesql', 'postgresql'];
+
+  const items = dbLangs.map((lang) => ({
+    label: lang,
+    description: lang === currentDbLang ? '(current default)' : '',
+    value: lang,
+  }));
+
+  const selected = await vscode.window.showQuickPick(items, {
+    placeHolder: `Current: ${currentDbLang} — Select a new default SQL language`,
+  });
+
+  if (selected) {
+    await config.update('defaultDbLanguage', selected.value, vscode.ConfigurationTarget.Global);
+    void vscode.window.showInformationMessage(`Default SQL language set to ${selected.label}.`);
+  }
 }
 
 /**
@@ -1212,6 +1296,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('better-leetcode.changeLanguage', () => {
       void handleChangeLanguage(authManager, context);
     }),
+    vscode.commands.registerCommand('better-leetcode.changeDefaultLanguage', () => {
+      void handleChangeDefaultLanguage();
+    }),
+    vscode.commands.registerCommand('better-leetcode.changeDefaultDbLanguage', () => {
+      void handleChangeDefaultDbLanguage();
+    }),
     vscode.commands.registerCommand('better-leetcode.testSolution', () => {
       void handleTestSolution(authManager, testResultsPanel);
     }),
@@ -1286,7 +1376,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (fs.existsSync(testcasesPath)) {
         existing = fs.readFileSync(testcasesPath, 'utf-8');
       }
-      const inputStr = typeof message.input === 'string' ? message.input : String(message.input || '');
+      const inputStr =
+        typeof message.input === 'string' ? message.input : String(message.input || '');
       const existingLines = existing
         .split('\n')
         .map((l) => l.trim())

@@ -89,7 +89,7 @@ suite('LeetCode Module Test Suite', () => {
     test('Should handle empty string, extra whitespace, and malformed pairs', () => {
       assert.strictEqual(parseCookies(''), undefined);
       assert.strictEqual(parseCookies('   '), undefined);
-      
+
       const parsed = parseCookies('  LEETCODE_SESSION=sess ;   csrftoken=csrf  ; malformedPair ;');
       assert.ok(parsed);
       assert.strictEqual(parsed.session, 'sess');
@@ -323,16 +323,18 @@ suite('LeetCode Module Test Suite', () => {
       let reqCount = 0;
       fetchMock = () => {
         reqCount++;
-        return Promise.resolve(createMockResponse({
-          data: {
-            problemsetQuestionList: {
-              total: 5,
-              questions: [ { frontendQuestionId: reqCount.toString() } ] // Mock varying question
-            }
-          }
-        }));
+        return Promise.resolve(
+          createMockResponse({
+            data: {
+              problemsetQuestionList: {
+                total: 5,
+                questions: [{ frontendQuestionId: reqCount.toString() }], // Mock varying question
+              },
+            },
+          }),
+        );
       };
-      
+
       const problems = await client.getAllProblems(2); // Batch size 2, total 5 means 3 requests (0, 2, 4)
       assert.strictEqual(problems.length, 3);
       assert.strictEqual(reqCount, 3);
@@ -388,9 +390,13 @@ suite('LeetCode Module Test Suite', () => {
     });
 
     test('Should fail login when user is not signed in', async () => {
-      fetchMock = () => Promise.resolve(createMockResponse({ data: { userStatus: { isSignedIn: false } } }));
+      fetchMock = () =>
+        Promise.resolve(createMockResponse({ data: { userStatus: { isSignedIn: false } } }));
       const manager = new LeetCodeAuthManager(mockContext);
-      await assert.rejects(() => manager.login('LEETCODE_SESSION=a; csrftoken=b;'), /user is not signed in/);
+      await assert.rejects(
+        () => manager.login('LEETCODE_SESSION=a; csrftoken=b;'),
+        /user is not signed in/,
+      );
     });
 
     test('Should handle login and save cookie to secure storage', async () => {

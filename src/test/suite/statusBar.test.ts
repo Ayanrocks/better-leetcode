@@ -7,7 +7,7 @@ import { LeetCodeAuthManager } from '../../leetcode/auth';
 class MockAuthManager {
   private _onDidChangeSession = new vscode.EventEmitter<any>();
   public readonly onDidChangeSession = this._onDidChangeSession.event;
-  
+
   private status: any = undefined;
 
   public getStatus() {

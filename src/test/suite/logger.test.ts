@@ -91,7 +91,7 @@ suite('Logger Test Suite', () => {
       // Flush is not explicitly available, wait a tiny bit to ensure async writes could settle if any (though Node fs is mostly sync here)
       const logFile = path.join(tempDir, 'test.log');
       const content = fs.readFileSync(logFile, 'utf-8');
-      
+
       assert.strictEqual(content.includes('This is info'), false);
       assert.strictEqual(content.includes('This is warn'), true);
       assert.strictEqual(content.includes('This is error'), true);
@@ -105,13 +105,13 @@ suite('Logger Test Suite', () => {
       });
 
       logger.info('test', 'My session is LEETCODE_SESSION=secret123; and csrftoken=abc456;');
-      
+
       logger.dispose();
       await new Promise((resolve) => setTimeout(resolve, 50));
 
       const logFile = path.join(tempDir, 'test.log');
       const content = fs.readFileSync(logFile, 'utf-8');
-      
+
       assert.strictEqual(content.includes('secret123'), false);
       assert.strictEqual(content.includes('abc456'), false);
       assert.strictEqual(content.includes('LEETCODE_SESSION=***'), true);
@@ -134,13 +134,13 @@ suite('Logger Test Suite', () => {
 
       const logFile = path.join(tempDir, 'test.log');
       const content = fs.readFileSync(logFile, 'utf-8');
-      
+
       assert.strictEqual(content.includes('some string'), true);
       assert.strictEqual(content.includes('{"foo":"bar"}'), true);
       assert.strictEqual(content.includes('Something broke'), true);
       assert.strictEqual(content.includes('Error: Something broke'), true); // Error stack/message included
     });
-    
+
     test('file rotation', async () => {
       const logger = Logger.initialize({
         level: LogLevel.INFO,
@@ -150,10 +150,10 @@ suite('Logger Test Suite', () => {
 
       await new Promise((resolve) => setTimeout(resolve, 50));
       logger.info('test', '12345'); // ~70 bytes. Total ~70. No rotation.
-      
+
       await new Promise((resolve) => setTimeout(resolve, 50));
       logger.info('test', '67890'); // ~70 bytes. Total 140 > 100. Rotates test.log (70 bytes) to test.1.log.
-      
+
       logger.dispose();
       await new Promise((resolve) => setTimeout(resolve, 50));
 

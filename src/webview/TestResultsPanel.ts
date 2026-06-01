@@ -842,7 +842,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
       // Failed submission: show the first failing case from scalar fields
       const failInput = result.last_testcase ?? '';
       const failExpected = result.expected_output ?? '';
-      
+
       // code_output may be a string (submit flow) or an array of strings (test flow)
       let failOutput = '';
       if (typeof result.code_output === 'string') {

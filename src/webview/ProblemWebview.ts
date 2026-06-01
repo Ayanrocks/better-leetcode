@@ -196,22 +196,30 @@ export class ProblemWebview {
     <h1>${details.questionFrontendId}. ${details.title}</h1>
     <div class="badges">
       <span class="badge ${difficultyClass}">${details.difficulty}</span>
-      ${details.topicTags && details.topicTags.length > 0 ? `
+      ${
+        details.topicTags && details.topicTags.length > 0
+          ? `
         <button id="tags-toggle" class="tags-toggle-btn">
           <span>Show Tags</span>
           <svg class="chevron" viewBox="0 0 24 24">
             <path fill="currentColor" d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"/>
           </svg>
         </button>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
-    ${details.topicTags && details.topicTags.length > 0 ? `
+    ${
+      details.topicTags && details.topicTags.length > 0
+        ? `
       <div id="tags-container" class="tags-container">
         <div class="tags-list">
-          ${details.topicTags.map(tag => `<span class="tag-badge">${tag.name}</span>`).join('')}
+          ${details.topicTags.map((tag) => `<span class="tag-badge">${tag.name}</span>`).join('')}
         </div>
       </div>
-    ` : ''}
+    `
+        : ''
+    }
     <div class="content">
       ${details.content}
     </div>

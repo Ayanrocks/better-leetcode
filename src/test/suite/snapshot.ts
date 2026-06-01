@@ -9,7 +9,7 @@ import * as assert from 'assert';
 export function matchSnapshot(
   testContext: Mocha.Context | undefined,
   actual: string,
-  snapshotName: string
+  snapshotName: string,
 ): void {
   if (!testContext || !testContext.test || !testContext.test.file) {
     throw new Error('matchSnapshot must be called within a Mocha test block with context.');

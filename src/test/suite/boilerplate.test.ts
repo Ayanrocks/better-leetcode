@@ -14,25 +14,26 @@ suite('BoilerplateManager Test Suite', () => {
     'rust',
     'php',
   ];
-  
-  const noBoilerplateLangs = [
-    'kotlin',
-    'swift',
-    'ruby',
-    'scala',
-    'javascript',
-    'typescript',
-  ];
+
+  const noBoilerplateLangs = ['kotlin', 'swift', 'ruby', 'scala', 'javascript', 'typescript'];
 
   test('hasBoilerplate returns true for languages with boilerplate', () => {
     for (const lang of boilerplateLangs) {
-      assert.strictEqual(BoilerplateManager.hasBoilerplate(lang), true, `Expected ${lang} to have boilerplate`);
+      assert.strictEqual(
+        BoilerplateManager.hasBoilerplate(lang),
+        true,
+        `Expected ${lang} to have boilerplate`,
+      );
     }
   });
 
   test('hasBoilerplate returns false for languages without boilerplate', () => {
     for (const lang of noBoilerplateLangs) {
-      assert.strictEqual(BoilerplateManager.hasBoilerplate(lang), false, `Expected ${lang} to NOT have boilerplate`);
+      assert.strictEqual(
+        BoilerplateManager.hasBoilerplate(lang),
+        false,
+        `Expected ${lang} to NOT have boilerplate`,
+      );
     }
   });
 
@@ -68,7 +69,11 @@ class Solution {
     }
 }
 `;
-      const extracted = BoilerplateManager.extractSolutionCode('java', fileContent, originalSnippet);
+      const extracted = BoilerplateManager.extractSolutionCode(
+        'java',
+        fileContent,
+        originalSnippet,
+      );
       assert.strictEqual(extracted.includes('class Solution {'), true);
       assert.strictEqual(extracted.includes('// Some prefix stuff'), false);
     });
@@ -77,7 +82,7 @@ class Solution {
       const prefix = BoilerplateManager.getConfig('golang').prefix;
       const userCode = `func main() {\n  fmt.Println("test")\n}`;
       const fileContent = prefix + userCode;
-      
+
       const extracted = BoilerplateManager.extractSolutionCode('golang', fileContent);
       assert.strictEqual(extracted.trim(), userCode.trim());
     });

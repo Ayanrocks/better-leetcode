@@ -4,6 +4,7 @@
   "description": "A flexible and robust VS Code extension for solving Leetcode problems.",
   "version": "0.0.1",
   "publisher": "better-leetcode-team",
+  "icon": "resources/better-leetcode-logo.svg",
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -18,14 +19,14 @@
         {
           "id": "better-leetcode-explorer",
           "title": "Better LeetCode",
-          "icon": "resources/leetcode.svg"
+          "icon": "resources/sidebar-logo.svg"
         }
       ],
       "panel": [
         {
           "id": "better-leetcode-results",
           "title": "Test Results",
-          "icon": "resources/leetcode.svg"
+          "icon": "resources/sidebar-logo.svg"
         }
       ]
     },
@@ -87,17 +88,31 @@
       {
         "command": "better-leetcode.testSolution",
         "title": "Test",
-        "icon": "$(play)"
+        "icon": {
+          "light": "resources/play-green.svg",
+          "dark": "resources/play-green.svg"
+        }
       },
       {
         "command": "better-leetcode.submitSolution",
         "title": "Submit",
-        "icon": "$(cloud-upload)"
+        "icon": {
+          "light": "resources/upload-orange.svg",
+          "dark": "resources/upload-orange.svg"
+        }
       },
       {
         "command": "better-leetcode.changeLanguage",
         "title": "Change Language",
         "icon": "$(code)"
+      },
+      {
+        "command": "better-leetcode.changeDefaultLanguage",
+        "title": "Better LeetCode: Change Default Language"
+      },
+      {
+        "command": "better-leetcode.changeDefaultDbLanguage",
+        "title": "Better LeetCode: Change Default SQL Language"
       },
       {
         "command": "better-leetcode.showProblemStatement",
@@ -167,9 +182,33 @@
           "command": "better-leetcode.signin",
           "when": "view == better-leetcode.views.dailyChallenge && !better-leetcode.isSignedIn",
           "group": "navigation@3"
+        },
+        {
+          "command": "better-leetcode.changeDefaultLanguage",
+          "when": "view == better-leetcode.views.allProblems",
+          "group": "1_config@1"
+        },
+        {
+          "command": "better-leetcode.changeDefaultDbLanguage",
+          "when": "view == better-leetcode.views.allProblems",
+          "group": "1_config@2"
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "better-leetcode.testSolution",
+        "key": "ctrl+;",
+        "mac": "cmd+;",
+        "when": "editorTextFocus && better-leetcode.isLeetCodeEditor"
+      },
+      {
+        "command": "better-leetcode.submitSolution",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "editorTextFocus && better-leetcode.isLeetCodeEditor"
+      }
+    ],
     "configuration": {
       "title": "Better Leetcode",
       "properties": {
@@ -257,7 +296,8 @@
     "pretest": "npm run compile && npm run compile-tests",
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src --ext ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "publish": "vsce publish"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
@@ -266,6 +306,7 @@
     "@typescript-eslint/eslint-plugin": "^7.7.1",
     "@typescript-eslint/parser": "^7.7.1",
     "@vscode/test-electron": "^2.3.9",
+    "@vscode/vsce": "^3.9.1",
     "esbuild": "^0.20.2",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",

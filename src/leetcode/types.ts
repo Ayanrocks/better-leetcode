@@ -185,4 +185,3 @@ export interface ContestInfo {
   };
   questions: ContestQuestion[];
 }
-

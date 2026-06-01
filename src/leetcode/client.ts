@@ -133,9 +133,13 @@ export class LeetCodeClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      Logger.getInstance().error('api', `GraphQL request failed with HTTP ${response.status}. Response: ${errorText}`, {
-        url,
-      });
+      Logger.getInstance().error(
+        'api',
+        `GraphQL request failed with HTTP ${response.status}. Response: ${errorText}`,
+        {
+          url,
+        },
+      );
       throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
 
@@ -153,7 +157,11 @@ export class LeetCodeClient {
       throw new Error('GraphQL response returned no data.');
     }
 
-    Logger.getInstance().debug('api', `GraphQL request completed: ${query.substring(0, 100).replace(/\n/g, ' ')}...`, { url, data: result.data });
+    Logger.getInstance().debug(
+      'api',
+      `GraphQL request completed: ${query.substring(0, 100).replace(/\n/g, ' ')}...`,
+      { url, data: result.data },
+    );
     return result.data;
   }
 
@@ -673,11 +681,18 @@ export class LeetCodeClient {
       const data = await this.query<{
         contestV2HistoryContests: { contests: LeetCodeContest[] } | null;
       }>(queryStr, { skip: 0, limit });
-      if (data?.contestV2HistoryContests?.contests && data.contestV2HistoryContests.contests.length > 0) {
+      if (
+        data?.contestV2HistoryContests?.contests &&
+        data.contestV2HistoryContests.contests.length > 0
+      ) {
         return data.contestV2HistoryContests.contests;
       }
     } catch (err) {
-      Logger.getInstance().warn('api', 'contestV2HistoryContests query failed, attempting fallback', err);
+      Logger.getInstance().warn(
+        'api',
+        'contestV2HistoryContests query failed, attempting fallback',
+        err,
+      );
     }
 
     // Fallback query
@@ -745,7 +760,7 @@ export class LeetCodeClient {
     }
 
     const contestData = data.contest;
-    
+
     // Map GraphQL response to the expected ContestInfo structure
     return {
       contest: {
@@ -765,4 +780,3 @@ export class LeetCodeClient {
     };
   }
 }
-

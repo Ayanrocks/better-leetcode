@@ -63,24 +63,40 @@ export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<v
 
   private getDifficultyDescription(difficulty: string): string {
     switch (difficulty) {
-      case 'Easy': return 'Easy';
-      case 'Medium': return 'Medium';
-      case 'Hard': return 'Hard';
-      default: return difficulty;
+      case 'Easy':
+        return 'Easy';
+      case 'Medium':
+        return 'Medium';
+      case 'Hard':
+        return 'Hard';
+      default:
+        return difficulty;
     }
   }
 
-  private getDifficultyIcon(difficulty: string, status?: string | null, paidOnly?: boolean): vscode.ThemeIcon {
+  private getDifficultyIcon(
+    difficulty: string,
+    status?: string | null,
+    paidOnly?: boolean,
+  ): vscode.ThemeIcon {
     if (status === 'ac') {
       return new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
     }
 
     let colorId: string;
     switch (difficulty) {
-      case 'Easy': colorId = 'charts.green'; break;
-      case 'Medium': colorId = 'charts.yellow'; break;
-      case 'Hard': colorId = 'charts.red'; break;
-      default: colorId = 'foreground'; break;
+      case 'Easy':
+        colorId = 'charts.green';
+        break;
+      case 'Medium':
+        colorId = 'charts.yellow';
+        break;
+      case 'Hard':
+        colorId = 'charts.red';
+        break;
+      default:
+        colorId = 'foreground';
+        break;
     }
 
     if (paidOnly) {

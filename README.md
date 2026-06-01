@@ -1,70 +1,108 @@
-# Better Leetcode VS Code Extension
-
-A robust, flexible, and modern VS Code extension designed to streamline solving LeetCode problems directly from your editor. It provides native language selection, full autocomplete, debugger support, and study list integration without cluttering your code with boilerplate comments.
+<div align="center">
+  <img src="resources/better-leetcode-logo.svg" alt="Better LeetCode Logo" width="128" height="128">
+  <h1>Better LeetCode</h1>
+  <p>A robust, flexible, and modern VS Code extension designed to streamline solving LeetCode problems directly from your editor.</p>
+  
+  <p>
+    <a href="https://marketplace.visualstudio.com/items?itemName=better-leetcode-team.better-leetcode"><img src="https://img.shields.io/visual-studio-marketplace/v/better-leetcode-team.better-leetcode?style=flat-square&color=007acc&label=VS%20Marketplace" alt="VS Marketplace Version"></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=better-leetcode-team.better-leetcode"><img src="https://img.shields.io/visual-studio-marketplace/i/better-leetcode-team.better-leetcode?style=flat-square&color=brightgreen" alt="Installs"></a>
+    <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License">
+  </p>
+</div>
 
 ---
 
-## Features
+## 🚀 Features
 
-- **Flexible Submission**: Submit solutions for both default test cases and hidden test cases.
-- **Language Switch on the Fly**: Change your target programming language seamlessly.
-- **No Boilerplate Comments**: Write clean, standard code; the extension handles the rest.
-- **Native VS Code Tooling**: Leverage VS Code's rich syntax highlighting, IntelliSense, and auto-complete.
+Better LeetCode brings the full LeetCode experience directly into your IDE with native support and no annoying boilerplate code.
+
+- **Flexible Submission**: Submit solutions against default test cases or hidden test cases effortlessly.
+- **Language Switch on the Fly**: Change your target programming language seamlessly from the editor.
+- **No Boilerplate Comments**: Write clean, standard code; the extension natively manages the underlying boilerplate.
+- **Native VS Code Tooling**: Leverage VS Code's rich syntax highlighting, IntelliSense, auto-complete, and extensions.
 - **Integrated Debugger**: Step through your code using VS Code's native debugger.
 - **Study Lists**: Easily track and complete curated LeetCode study lists.
-- **Daily Problems**: Quickly fetch and solve the daily LeetCode challenge.
+- **Daily Problems**: Quickly fetch and solve the daily LeetCode challenge with a single click.
+
+### Screenshot
+![Better Leetcode Interface](assets/screenshot.png)
 
 ---
 
-## Prerequisites
+## 🔑 Authentication / Login
+
+To interact with LeetCode (fetch premium problems, submit solutions, track progress), you need to log in by providing your LeetCode Session Token and CSRF Token.
+
+1. Go to [LeetCode.com](https://leetcode.com) and log in.
+2. Open your browser's Developer Tools (usually `F12` or `Cmd+Option+I`).
+3. Navigate to the **Application** tab (Chrome/Edge) or **Storage** tab (Firefox).
+4. Under **Cookies**, select `https://leetcode.com`.
+5. Find the cookie named `LEETCODE_SESSION` and copy its value.
+6. Find the cookie named `csrftoken` and copy its value.
+7. In VS Code, run the command **`Better LeetCode: Sign In`** from the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`).
+8. Paste the tokens when prompted to authenticate your extension.
+
+---
+
+## 🛠️ Getting Started for Development
+
+### 1. Prerequisites
 
 - **VS Code** (version `^1.90.0` or higher)
 - **Node.js** (version `^20.0.0` or higher)
 - **Bun** (preferred package manager)
 
----
-
-## Getting Started
-
-### 1. Install Dependencies
+### 2. Install Dependencies
 Initialize and install the required dependencies using Bun:
 ```bash
 bun install
 ```
-*(Alternatively, you can run `npm install`)*
 
-### 2. Compile and Run the Extension
+### 3. Compile and Run the Extension
+
 To run and debug the extension locally:
 1. Open the project directory in VS Code.
 2. Press **`F5`** (or go to the **Run and Debug** view and select **"Run Extension"**).
-3. A new window named **[Extension Development Host]** will launch with the Better Leetcode extension activated.
-4. Open the Command Palette (`Cmd+Shift+P` on macOS, `Ctrl+Shift+P` on Windows/Linux).
-5. Type and select `Better Leetcode: Hello World`.
-6. You will see a greeting notification verifying the setup.
-
-### 3. Build & Compile Configurations
-The project uses **esbuild** for fast compilation:
-- **`bun run compile`**: Runs a one-time build outputting to `./dist/extension.js`.
-- **`bun run watch`**: Starts esbuild in watch mode, recompiling on save.
-- **`bun run package`**: Compiles and minifies the extension for publishing.
+3. A new window named **[Extension Development Host]** will launch.
+4. Open the Command Palette and type **`Better LeetCode: Show Problem Statement`** or any other extension command to test it.
 
 ---
 
-## Running Tests
+## 📦 Publishing the Extension
 
-Integration tests run in a clean, isolated VS Code instance:
-```bash
-bun run test
-```
-This command compiles the source code and runs Mocha tests located in `src/test/suite/`.
+We use GitHub Actions to automate publishing the extension to the Visual Studio Marketplace.
+
+### Automated Publishing via GitHub Actions
+
+1. Ensure your extension version is updated in `package.json`.
+2. Push your changes to the `main` branch.
+3. Create a **Release** on GitHub with the new version tag (e.g., `v1.0.0`).
+4. The GitHub Actions workflow will automatically bundle and publish the extension.
+
+*Note: You must have the `VSCE_PAT` secret configured in your repository settings (Settings > Secrets and variables > Actions). This Personal Access Token should be generated from your Azure DevOps organization with "Marketplace" > "Manage" scopes.*
+
+### Manual Publishing
+
+If you need to publish manually from your local machine:
+1. Install `vsce` globally:
+   ```bash
+   npm install -g @vscode/vsce
+   ```
+2. Package the extension:
+   ```bash
+   bun run package
+   vsce package
+   ```
+3. Publish the extension:
+   ```bash
+   bun run publish
+   ```
 
 ---
 
-## Coding Guidelines
+## 📄 Coding Guidelines
 
-To maintain code quality and stability, please adhere to the following rules defined in [AGENTS.md](file:///Users/ayanrocks/Developer/better-leetcode/AGENTS.md):
+To maintain code quality and stability, please adhere to the rules defined in [AGENTS.md](AGENTS.md):
 - **TypeScript Only**: Write clean, type-safe TypeScript. Do not use the `any` type under any circumstances.
 - **SOLID Principles**: Keep components focused, modular, and decoupled.
-- **API Isolation**: All LeetCode API integrations must live in a separate module under `src/api/` or similar.
-- **Null Safety**: Always thoroughly check for `null` and `undefined` to prevent runtime crashes.
 - **Comprehensive Testing**: Write unit and integration tests for all core features and edge cases.
