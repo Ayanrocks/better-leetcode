@@ -4,9 +4,10 @@
   <p>A robust, flexible, and modern VS Code extension designed to streamline solving LeetCode problems directly from your editor.</p>
   
   <p>
-    <a href="https://marketplace.visualstudio.com/items?itemName=better-leetcode-team.better-leetcode"><img src="https://img.shields.io/visual-studio-marketplace/v/better-leetcode-team.better-leetcode?style=flat-square&color=007acc&label=VS%20Marketplace" alt="VS Marketplace Version"></a>
-    <a href="https://marketplace.visualstudio.com/items?itemName=better-leetcode-team.better-leetcode"><img src="https://img.shields.io/visual-studio-marketplace/i/better-leetcode-team.better-leetcode?style=flat-square&color=brightgreen" alt="Installs"></a>
-    <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License">
+    <a href="https://marketplace.visualstudio.com/items?itemName=better-leetcode-team.better-leetcode"><img src="https://img.shields.io/visual-studio-marketplace/v/better-leetcode-team.better-leetcode?style=for-the-badge&color=007acc&logo=visualstudiocode" alt="VS Marketplace Version"></a>
+    <a href="https://marketplace.visualstudio.com/items?itemName=better-leetcode-team.better-leetcode"><img src="https://img.shields.io/visual-studio-marketplace/i/better-leetcode-team.better-leetcode?style=for-the-badge&color=FFA116&logo=visualstudiocode" alt="Installs"></a>
+    <img src="https://img.shields.io/badge/License-MIT-282828?style=for-the-badge" alt="License">
+    <a href="https://buymeacoffee.com/banerjeeayan"><img src="https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee"></a>
   </p>
 </div>
 
@@ -106,3 +107,11 @@ To maintain code quality and stability, please adhere to the rules defined in [A
 - **TypeScript Only**: Write clean, type-safe TypeScript. Do not use the `any` type under any circumstances.
 - **SOLID Principles**: Keep components focused, modular, and decoupled.
 - **Comprehensive Testing**: Write unit and integration tests for all core features and edge cases.
+
+---
+
+## ☕ Support
+
+If you find this extension helpful and it saves you time, consider buying me a coffee to support its ongoing development!
+
+<a href="https://buymeacoffee.com/banerjeeayan"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="40"></a>
