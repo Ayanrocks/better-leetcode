@@ -1365,10 +1365,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void handleSubmitSolution(authManager, testResultsPanel);
     }),
     vscode.commands.registerCommand('better-leetcode.refresh', () => {
-      logger.debug('extension', 'Manual refresh triggered (incremental)');
+      logger.debug('extension', 'Manual refresh triggered (global)');
       dailyChallengeProvider.refresh();
       allProblemsProvider.refresh();
       studyListsProvider.refresh();
+      contestsProvider.refresh();
+    }),
+    vscode.commands.registerCommand('better-leetcode.refreshDailyChallenge', () => {
+      logger.debug('extension', 'Manual refresh triggered (Daily Challenge)');
+      dailyChallengeProvider.refresh();
+    }),
+    vscode.commands.registerCommand('better-leetcode.refreshAllProblems', () => {
+      logger.debug('extension', 'Manual refresh triggered (All Problems)');
+      allProblemsProvider.refresh();
+    }),
+    vscode.commands.registerCommand('better-leetcode.refreshStudyLists', () => {
+      logger.debug('extension', 'Manual refresh triggered (Study Lists)');
+      studyListsProvider.refresh();
+    }),
+    vscode.commands.registerCommand('better-leetcode.refreshContests', () => {
+      logger.debug('extension', 'Manual refresh triggered (Contests)');
       contestsProvider.refresh();
     }),
     vscode.commands.registerCommand('better-leetcode.fullRefreshProblems', () => {
@@ -1383,6 +1399,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.commands.registerCommand('better-leetcode.showLogs', () => {
       logger.show();
+    }),
+  );
+
+  // Trigger a global refresh when auth session changes
+  context.subscriptions.push(
+    authManager.onDidChangeSession(() => {
+      logger.info('extension', 'Auth state changed, triggering global refresh');
+      void vscode.commands.executeCommand('better-leetcode.refresh');
     }),
   );
 

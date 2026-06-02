@@ -85,6 +85,26 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "better-leetcode.refreshDailyChallenge",
+        "title": "Refresh Daily Challenge",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "better-leetcode.refreshAllProblems",
+        "title": "Refresh Problems",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "better-leetcode.refreshStudyLists",
+        "title": "Refresh Study Lists",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "better-leetcode.refreshContests",
+        "title": "Refresh Contests",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "better-leetcode.search",
         "title": "Search Problem",
         "icon": "$(search)"
@@ -173,8 +193,23 @@
       ],
       "view/title": [
         {
-          "command": "better-leetcode.refresh",
-          "when": "view == better-leetcode.views.dailyChallenge || view == better-leetcode.views.allProblems || view == better-leetcode.views.studyLists || view == better-leetcode.views.contests",
+          "command": "better-leetcode.refreshDailyChallenge",
+          "when": "view == better-leetcode.views.dailyChallenge",
+          "group": "navigation@1"
+        },
+        {
+          "command": "better-leetcode.refreshAllProblems",
+          "when": "view == better-leetcode.views.allProblems",
+          "group": "navigation@1"
+        },
+        {
+          "command": "better-leetcode.refreshStudyLists",
+          "when": "view == better-leetcode.views.studyLists",
+          "group": "navigation@1"
+        },
+        {
+          "command": "better-leetcode.refreshContests",
+          "when": "view == better-leetcode.views.contests",
           "group": "navigation@1"
         },
         {

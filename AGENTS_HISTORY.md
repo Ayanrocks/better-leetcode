@@ -1,5 +1,21 @@
 # AGENTS_HISTORY
 
+## 2026-06-02 — Implement Auth State Refresh & Sidebar Controls
+
+### What was done
+
+1. Subscribed to `authManager.onDidChangeSession` in `src/extension.ts` to trigger a global refresh via `better-leetcode.refresh` whenever the authentication state changes (such as logging in or out).
+2. Added individual refresh commands (`better-leetcode.refreshDailyChallenge`, `better-leetcode.refreshAllProblems`, `better-leetcode.refreshStudyLists`, and `better-leetcode.refreshContests`) so that clicking the refresh button on a specific view header only refreshes that specific view section.
+3. Corrected extension publisher identifier from `better-leetcode-team` to `ayanrocks` in test suite assertions.
+4. Refactored `statusBar.test.ts` mock implementations and test logic to be fully type-safe, eliminating all explicit `any` types and `@ts-ignore` statements to comply with standard TypeScript guidelines.
+
+### Files modified
+
+- `package.json`
+- `src/extension.ts`
+- `src/test/suite/extension.test.ts`
+- `src/test/suite/statusBar.test.ts`
+
 ## 2026-06-02 — Update README Badges and Add Changelog
 
 ### What was done

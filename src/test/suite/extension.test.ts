@@ -17,7 +17,7 @@ suite('Extension Test Suite', () => {
   });
 
   test('Verify extension commands are registered', async () => {
-    const extension = vscode.extensions.getExtension('better-leetcode-team.better-leetcode');
+    const extension = vscode.extensions.getExtension('ayanrocks.better-leetcode');
     assert.ok(extension, 'Extension should be found.');
     await extension.activate();
 
@@ -27,6 +27,22 @@ suite('Extension Test Suite', () => {
     assert.ok(
       commands.includes('better-leetcode.showUser'),
       'showUser command should be registered',
+    );
+    assert.ok(
+      commands.includes('better-leetcode.refreshDailyChallenge'),
+      'refreshDailyChallenge command should be registered',
+    );
+    assert.ok(
+      commands.includes('better-leetcode.refreshAllProblems'),
+      'refreshAllProblems command should be registered',
+    );
+    assert.ok(
+      commands.includes('better-leetcode.refreshStudyLists'),
+      'refreshStudyLists command should be registered',
+    );
+    assert.ok(
+      commands.includes('better-leetcode.refreshContests'),
+      'refreshContests command should be registered',
     );
   });
 

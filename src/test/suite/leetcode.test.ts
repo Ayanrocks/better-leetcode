@@ -489,9 +489,7 @@ suite('LeetCode Module Test Suite', () => {
 
       test('Should handle login failure from invalid cookie gracefully', async () => {
         fetchMock = () =>
-          Promise.resolve(
-            createMockResponse({ data: { userStatus: { isSignedIn: false } } }),
-          );
+          Promise.resolve(createMockResponse({ data: { userStatus: { isSignedIn: false } } }));
 
         const manager = new LeetCodeAuthManager(mockContext);
         const cookieValue = 'LEETCODE_SESSION=bad; csrftoken=bad;';
