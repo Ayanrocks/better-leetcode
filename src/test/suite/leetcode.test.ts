@@ -443,5 +443,66 @@ suite('LeetCode Module Test Suite', () => {
       const savedSecret = await mockSecrets.get('better-leetcode.cookie');
       assert.strictEqual(savedSecret, undefined);
     });
+
+    suite('handleUri (Web Authorization callback)', () => {
+      test('Should login successfully when URI contains a valid cookie', async () => {
+        const mockStatus = {
+          isSignedIn: true,
+          isPremium: false,
+          username: 'web_auth_user',
+          realName: 'Web Auth User',
+          avatar: 'avatar',
+          userSlug: 'web_auth_user',
+          isAdmin: false,
+        };
+
+        fetchMock = () => {
+          return Promise.resolve(
+            createMockResponse({
+              data: { userStatus: mockStatus },
+            }),
+          );
+        };
+
+        const manager = new LeetCodeAuthManager(mockContext);
+        const cookieValue = 'LEETCODE_SESSION=web_sess; csrftoken=web_csrf;';
+        const uri = vscode.Uri.parse(
+          `vscode://ayanrocks.better-leetcode/?cookie=${encodeURIComponent(cookieValue)}`,
+        );
+
+        await manager.handleUri(uri);
+        assert.ok(manager.getStatus());
+        assert.strictEqual(manager.getStatus()?.username, 'web_auth_user');
+
+        const savedSecret = await mockSecrets.get('better-leetcode.cookie');
+        assert.strictEqual(savedSecret, cookieValue);
+      });
+
+      test('Should not crash when URI has no cookie parameter', async () => {
+        const manager = new LeetCodeAuthManager(mockContext);
+        const uri = vscode.Uri.parse('vscode://ayanrocks.better-leetcode/?other=value');
+
+        // Should not throw — just shows an error message internally
+        await manager.handleUri(uri);
+        assert.strictEqual(manager.getStatus(), undefined);
+      });
+
+      test('Should handle login failure from invalid cookie gracefully', async () => {
+        fetchMock = () =>
+          Promise.resolve(
+            createMockResponse({ data: { userStatus: { isSignedIn: false } } }),
+          );
+
+        const manager = new LeetCodeAuthManager(mockContext);
+        const cookieValue = 'LEETCODE_SESSION=bad; csrftoken=bad;';
+        const uri = vscode.Uri.parse(
+          `vscode://ayanrocks.better-leetcode/?cookie=${encodeURIComponent(cookieValue)}`,
+        );
+
+        // Should not throw — handleUri catches errors and shows an error message
+        await manager.handleUri(uri);
+        assert.strictEqual(manager.getStatus(), undefined);
+      });
+    });
   });
 });

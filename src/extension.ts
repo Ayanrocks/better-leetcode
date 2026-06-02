@@ -60,31 +60,79 @@ export interface ProblemMetadata {
 
 /**
  * Handles the Sign In command.
- * Prompts the user for their cookie string, validates it, and logs in.
+ * Presents a Quick Pick with Web Authorization (recommended) and
+ * manual Cookie entry options.
  *
  * @param authManager - The LeetCode authentication manager instance.
+ * @param context - The VS Code extension context, used to build the redirect URI.
  */
-async function handleSignIn(authManager: LeetCodeAuthManager): Promise<void> {
-  const endpoint = authManager.getClient().getEndpoint();
-  const loginUrl = `${endpoint}/accounts/login/`;
-
-  const choice = await vscode.window.showInformationMessage(
-    'To sign in, please log in to LeetCode in your browser and copy your session cookies.',
-    'Open Browser & Login',
-    'Read from Clipboard',
-    'Paste Manually',
+async function handleSignIn(
+  authManager: LeetCodeAuthManager,
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const choice = await vscode.window.showQuickPick(
+    [
+      {
+        label: '$(globe) Web Authorization',
+        description: '(Recommended)',
+        detail: 'Open browser to authorize login on the website',
+        value: 'WebAuth',
+      },
+      {
+        label: '$(key) LeetCode Cookie',
+        description: '',
+        detail: 'Use LeetCode cookie copied from browser to login',
+        value: 'Cookie',
+      },
+    ],
+    { placeHolder: 'Select a sign-in method' },
   );
 
   if (!choice) {
     return;
   }
 
+  if (choice.value === 'WebAuth') {
+    const endpoint = authManager.getClient().getEndpoint();
+    const uriScheme = vscode.env.uriScheme; // 'vscode', 'vscode-insiders', etc.
+    const extensionId = context.extension.id;
+    const authUrl = `${endpoint}/authorize-login/${uriScheme}/?path=${extensionId}`;
+    void vscode.env.openExternal(vscode.Uri.parse(authUrl));
+    return;
+  }
+
+  // ── Cookie flow (fallback) ─────────────────────────────────────────
+  await handleCookieSignIn(authManager);
+}
+
+/**
+ * Handles the manual Cookie sign-in flow.
+ * Prompts the user for their LEETCODE_SESSION and csrftoken values,
+ * validates the cookie, and logs in.
+ *
+ * @param authManager - The LeetCode authentication manager instance.
+ */
+async function handleCookieSignIn(authManager: LeetCodeAuthManager): Promise<void> {
+  const endpoint = authManager.getClient().getEndpoint();
+  const loginUrl = `${endpoint}/accounts/login/`;
+
+  const subChoice = await vscode.window.showInformationMessage(
+    'Log in to LeetCode in your browser and copy your session cookies.',
+    'Open Browser & Login',
+    'Read from Clipboard',
+    'Paste Manually',
+  );
+
+  if (!subChoice) {
+    return;
+  }
+
   let cookieString: string | undefined;
 
-  if (choice === 'Open Browser & Login') {
+  if (subChoice === 'Open Browser & Login') {
     void vscode.env.openExternal(vscode.Uri.parse(loginUrl));
     const readyChoice = await vscode.window.showInformationMessage(
-      'After logging in to LeetCode, copy the Cookie header from the Developer Tools Network tab.',
+      'After logging in, copy the Cookie header from Developer Tools Network tab.',
       'Read from Clipboard',
       'Paste Manually',
     );
@@ -95,7 +143,7 @@ async function handleSignIn(authManager: LeetCodeAuthManager): Promise<void> {
     if (readyChoice === 'Read from Clipboard') {
       cookieString = await vscode.env.clipboard.readText();
     }
-  } else if (choice === 'Read from Clipboard') {
+  } else if (subChoice === 'Read from Clipboard') {
     cookieString = await vscode.env.clipboard.readText();
   }
 
@@ -201,8 +249,12 @@ async function handleSignOut(authManager: LeetCodeAuthManager): Promise<void> {
  * Shows account details if signed in, or provides choices to sign in/out/configure.
  *
  * @param authManager - The LeetCode authentication manager instance.
+ * @param context - The VS Code extension context, forwarded to handleSignIn.
  */
-async function handleShowUser(authManager: LeetCodeAuthManager): Promise<void> {
+async function handleShowUser(
+  authManager: LeetCodeAuthManager,
+  context: vscode.ExtensionContext,
+): Promise<void> {
   const status = authManager.getStatus();
   const items: vscode.QuickPickItem[] = [];
 
@@ -239,7 +291,7 @@ async function handleShowUser(authManager: LeetCodeAuthManager): Promise<void> {
   }
 
   if (selected.label.includes('Sign In')) {
-    void handleSignIn(authManager);
+    void handleSignIn(authManager, context);
   } else if (selected.label.includes('Sign Out')) {
     void handleSignOut(authManager);
   } else if (selected.label.includes('Change Endpoint')) {
@@ -1234,6 +1286,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   await authManager.initialize();
 
+  // Register URI handler for Web Authorization callback
+  context.subscriptions.push(
+    vscode.window.registerUriHandler({
+      handleUri: async (uri: vscode.Uri) => {
+        await authManager.handleUri(uri);
+      },
+    }),
+  );
+
   // Register Tree Views
   const dailyChallengeProvider = new DailyChallengeTreeDataProvider(authManager);
   vscode.window.registerTreeDataProvider(
@@ -1258,9 +1319,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Register Commands
   context.subscriptions.push(
-    vscode.commands.registerCommand('better-leetcode.signin', () => handleSignIn(authManager)),
+    vscode.commands.registerCommand('better-leetcode.signin', () =>
+      handleSignIn(authManager, context),
+    ),
     vscode.commands.registerCommand('better-leetcode.signout', () => handleSignOut(authManager)),
-    vscode.commands.registerCommand('better-leetcode.showUser', () => handleShowUser(authManager)),
+    vscode.commands.registerCommand('better-leetcode.showUser', () =>
+      handleShowUser(authManager, context),
+    ),
     vscode.commands.registerCommand('better-leetcode.openProblem', (problemSlug: string) => {
       void handleOpenProblem(authManager, context, problemSlug);
     }),

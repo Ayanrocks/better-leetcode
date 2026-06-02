@@ -119,6 +119,45 @@ export class LeetCodeAuthManager {
   }
 
   /**
+   * Handles a URI callback from the web authorization flow.
+   * Parses the `cookie` query parameter and authenticates with it.
+   *
+   * @param uri - The callback URI containing the cookie in its query string.
+   */
+  public async handleUri(uri: vscode.Uri): Promise<void> {
+    const params = new URLSearchParams(uri.query);
+    const cookie = params.get('cookie');
+
+    if (cookie === null || cookie === '') {
+      Logger.getInstance().warn('auth', 'Web auth callback received without a cookie parameter');
+      void vscode.window.showErrorMessage(
+        'Web authorization failed: no cookie was received. Please try again or use the Cookie method.',
+      );
+      return;
+    }
+
+    try {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'Verifying LeetCode credentials...',
+          cancellable: false,
+        },
+        async () => {
+          await this.login(cookie);
+        },
+      );
+      void vscode.window.showInformationMessage(
+        `Successfully signed in to LeetCode as ${this.userStatus?.username}.`,
+      );
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      Logger.getInstance().error('auth', 'Web auth callback login failed', err);
+      void vscode.window.showErrorMessage(`Web authorization failed: ${errMsg}`);
+    }
+  }
+
+  /**
    * Gets the currently authenticated user's profile status.
    */
   public getStatus(): UserStatus | undefined {

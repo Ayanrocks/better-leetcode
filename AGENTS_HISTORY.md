@@ -33,3 +33,22 @@ Fixed two bugs in `src/extension.ts`:
 
 ### Test status
 - 61 passing, 4 failing (pre-existing status bar naming mismatches, unrelated)
+
+## 2026-06-02 — Web Authorization Login Flow (v1.1.0)
+
+### What was done
+
+Added a Web Authorization login flow matching LeetCode's official `authorize-login` endpoint, used by `vscode-leetcode`. Users now see a QuickPick with two options:
+
+1. **Web Authorization (Recommended)** — opens browser to `${endpoint}/authorize-login/${uriScheme}/?path=${extensionId}`. LeetCode redirects back to VS Code via custom URI scheme with cookie in query params.
+2. **LeetCode Cookie** — manual fallback using the existing clipboard/paste cookie flow.
+
+### Key changes
+
+- `src/leetcode/auth.ts` — added `handleUri(uri)` method to parse cookie from URI callback and login
+- `src/extension.ts` — split `handleSignIn` into QuickPick + `handleCookieSignIn`; registered `vscode.window.registerUriHandler` in `activate()`; updated `handleShowUser` signature to pass `context`
+- `src/test/suite/leetcode.test.ts` — added 3 tests: valid URI login, missing cookie param, invalid cookie graceful failure
+
+### Test status
+
+- 64 passing, 4 failing (pre-existing status bar naming mismatches, unrelated)
