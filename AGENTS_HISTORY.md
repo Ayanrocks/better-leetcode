@@ -1,19 +1,35 @@
-# Agent Work History
+# AGENTS_HISTORY
 
-## Session: Extension Publishing Preparation
-- **Logo Generation**: Created a new SVG vector logo (`resources/better-leetcode-logo.svg`) styled as "LC+" in dark theme.
-- **README Update**: Rewrote `README.md` to include:
-  - Better LeetCode Badges and the new logo.
-  - Complete list of features.
-  - Instructions for authentication using LeetCode Session Token and CSRF Token.
-  - Local development and building instructions.
-  - Publishing instructions (via GitHub Actions and Manual publishing).
-  - Included a reference to an `assets/screenshot.png` for showcasing the UI.
-- **Publishing & CI**:
-  - Installed `@vscode/vsce` as a dev dependency via bun.
-  - Added a `publish` script to `package.json`.
-  - Added a GitHub Actions workflow in `.github/workflows/publish.yml` to automate publishing to the VS Code Marketplace on release tags.
+## 2026-06-02 — Update README Badges and Add Changelog
 
-**Pending Actions for the User**: 
-- Save the screenshot of the UI as `assets/screenshot.png` relative to the workspace root.
-- Push changes to the repository and set up the `VSCE_PAT` secret for the GitHub Actions.
+### What was done
+1. Updated `README.md` badges to use the modern `vsmarketplacebadges.dev` service instead of the retired `shields.io` Visual Studio Marketplace endpoints.
+2. Formatted all README badges (Version, Installs, License, Buy Me A Coffee) to use the modern `for-the-badge` style to match the aesthetic of `Ileriayo/markdown-badges`.
+3. Created a standard `CHANGELOG.md` file following the "Keep a Changelog" format to document past releases (v1.0.0, v1.0.1, v1.0.2).
+
+### Files modified/created
+- `README.md` — updated badges to use vsmarketplacebadges.dev `for-the-badge` style and corrected item publisher casing
+- `CHANGELOG.md` — created new standard changelog file
+
+## 2026-06-02 — Fix Language Tracking Bugs
+
+### What was done
+Fixed two bugs in `src/extension.ts`:
+
+1. **Daily problem editor focus**: `handleOpenProblem` was using `vscode.workspace.textDocuments` (includes closed/cached docs) to check for existing editors. Changed to `vscode.window.visibleTextEditors` so it only detects actually visible tabs. When a visible tab exists for the problem, only the webview refreshes — the editor is left untouched. When no tab is visible, the default language file opens.
+
+2. **Language switcher showing wrong language**: `handleChangeLanguage` was reading `metadata.lang` to determine the current language. Changed to derive language from the active tab's file extension via new exported function `deriveLangFromExtension()`.
+
+### Key changes
+- Extracted duplicated `extToLangMap` into module-level `EXT_TO_LANG_MAP` constant
+- Added exported `deriveLangFromExtension(filePath)` utility
+- Removed now-unused `showEditorIfAlreadyOpen` parameter from `handleOpenProblem`
+- Fixed pre-existing TS2532 errors (unsafe `codeSnippets[0]` access)
+- Added 13 tests for `deriveLangFromExtension` and `EXT_TO_LANG_MAP`
+
+### Files modified
+- `src/extension.ts` — core fixes
+- `src/test/suite/extension.test.ts` — new tests
+
+### Test status
+- 61 passing, 4 failing (pre-existing status bar naming mismatches, unrelated)

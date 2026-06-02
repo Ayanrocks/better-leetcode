@@ -6,6 +6,8 @@ import {
   normalizeResult,
   deriveFromMetaData,
   deriveFromHtmlContent,
+  deriveLangFromExtension,
+  EXT_TO_LANG_MAP,
 } from '../../extension';
 
 suite('Extension Test Suite', () => {
@@ -111,6 +113,86 @@ suite('Extension Test Suite', () => {
 
       const htmlZeroExamples = '<div>No input tags here</div>';
       assert.strictEqual(deriveFromHtmlContent(htmlZeroExamples, examples), null);
+    });
+  });
+
+  suite('deriveLangFromExtension', () => {
+    test('returns golang for .go files', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/problem/main.go'), 'golang');
+    });
+
+    test('returns cpp for .cpp files', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/problem/main.cpp'), 'cpp');
+    });
+
+    test('returns python3 for .py files', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/problem/main.py'), 'python3');
+    });
+
+    test('returns typescript for .ts files', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/problem/main.ts'), 'typescript');
+    });
+
+    test('returns javascript for .js files', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/problem/main.js'), 'javascript');
+    });
+
+    test('returns rust for .rs files', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/problem/main.rs'), 'rust');
+    });
+
+    test('returns java for .java files', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/problem/main.java'), 'java');
+    });
+
+    test('returns csharp for .cs files', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/problem/main.cs'), 'csharp');
+    });
+
+    test('returns null for unknown extensions', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/problem/main.xyz'), null);
+    });
+
+    test('returns null for files without extensions', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/problem/Makefile'), null);
+    });
+
+    test('handles paths with multiple dots', () => {
+      assert.strictEqual(deriveLangFromExtension('/path/to/my.problem/main.go'), 'golang');
+    });
+  });
+
+  suite('EXT_TO_LANG_MAP coverage', () => {
+    test('maps all expected file extensions', () => {
+      const expectedMappings: Record<string, string> = {
+        cpp: 'cpp',
+        java: 'java',
+        py: 'python3',
+        js: 'javascript',
+        ts: 'typescript',
+        cs: 'csharp',
+        c: 'c',
+        go: 'golang',
+        kt: 'kotlin',
+        swift: 'swift',
+        rs: 'rust',
+        rb: 'ruby',
+        php: 'php',
+        sql: 'mysql',
+      };
+
+      for (const [ext, lang] of Object.entries(expectedMappings)) {
+        assert.strictEqual(
+          EXT_TO_LANG_MAP[ext],
+          lang,
+          `EXT_TO_LANG_MAP['${ext}'] should be '${lang}'`,
+        );
+      }
+    });
+
+    test('does not contain unexpected extensions', () => {
+      // Verify the map has exactly the expected number of entries
+      assert.strictEqual(Object.keys(EXT_TO_LANG_MAP).length, 14);
     });
   });
 });

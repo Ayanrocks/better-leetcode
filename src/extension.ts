@@ -13,6 +13,39 @@ import { ProblemDetails, ProblemMetaData, SubmissionCheckResult } from './leetco
 import { Logger, parseLogLevel } from './logger';
 
 /**
+ * Maps file extensions to LeetCode language slugs.
+ * Used consistently for submit, test, and language detection.
+ */
+export const EXT_TO_LANG_MAP: Record<string, string> = {
+  cpp: 'cpp',
+  java: 'java',
+  py: 'python3',
+  js: 'javascript',
+  ts: 'typescript',
+  cs: 'csharp',
+  c: 'c',
+  go: 'golang',
+  kt: 'kotlin',
+  swift: 'swift',
+  rs: 'rust',
+  rb: 'ruby',
+  php: 'php',
+  sql: 'mysql',
+};
+
+/**
+ * Derives the LeetCode language slug from a file extension.
+ * Returns the language slug, or null if the extension is unknown.
+ *
+ * @param filePath - Absolute path to the solution file.
+ * @returns The LeetCode language slug, or null.
+ */
+export function deriveLangFromExtension(filePath: string): string | null {
+  const ext = path.extname(filePath).replace('.', '');
+  return EXT_TO_LANG_MAP[ext] ?? null;
+}
+
+/**
  * Metadata stored alongside each solution file for round-trip boilerplate handling.
  */
 export interface ProblemMetadata {
@@ -228,7 +261,6 @@ async function handleOpenProblem(
   context: vscode.ExtensionContext,
   problemSlug: string,
   preferredLang?: string,
-  showEditorIfAlreadyOpen: boolean = true,
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration('better-leetcode');
   let storagePath = config.get<string>('storagePath');
@@ -350,12 +382,15 @@ async function handleOpenProblem(
         if (details.codeSnippets.some((s) => s.langSlug === defaultDbLanguage)) {
           targetLang = defaultDbLanguage;
         } else {
-          targetLang =
-            details.codeSnippets.find((s) => dbLangs.includes(s.langSlug))?.langSlug ||
-            details.codeSnippets[0].langSlug;
+          const dbSnippet = details.codeSnippets.find((s) => dbLangs.includes(s.langSlug));
+          const firstSnippet = details.codeSnippets[0];
+          targetLang = dbSnippet?.langSlug ?? firstSnippet?.langSlug ?? targetLang;
         }
       } else {
-        targetLang = details.codeSnippets[0].langSlug;
+        const firstSnippet = details.codeSnippets[0];
+        if (firstSnippet !== undefined) {
+          targetLang = firstSnippet.langSlug;
+        }
       }
     }
   }
@@ -427,55 +462,42 @@ async function handleOpenProblem(
     }
   }
 
-  // Check if an editor for this problem is already open
-  const existingDoc = vscode.workspace.textDocuments.find((d) => {
-    const meta = readProblemMetadata(d.uri.fsPath);
+  // Check if a *visible* editor tab for this problem is already open.
+  // We use visibleTextEditors (actual on-screen tabs) instead of
+  // workspace.textDocuments (which includes closed/cached documents).
+  const visibleProblemEditor = vscode.window.visibleTextEditors.find((e) => {
+    const meta = readProblemMetadata(e.document.uri.fsPath);
     return meta !== null && meta.titleSlug === problemSlug;
   });
 
   // Open Webview in Column One
   ProblemWebview.createOrShow(context.extensionUri, details);
 
-  if (existingDoc) {
-    if (showEditorIfAlreadyOpen) {
-      await vscode.window.showTextDocument(existingDoc, vscode.ViewColumn.Two, false);
-      if (ext === 'sql') {
-        const vscodeLangMap: Record<string, string> = {
-          mysql: 'mysql',
-          postgresql: 'postgres',
-          mssql: 'sql',
-          oraclesql: 'oraclesql',
-        };
-        const vscodeLangId = vscodeLangMap[targetLang] || 'sql';
-        try {
-          await vscode.languages.setTextDocumentLanguage(existingDoc, vscodeLangId);
-        } catch {
-          try {
-            await vscode.languages.setTextDocumentLanguage(existingDoc, 'sql');
-          } catch {}
-        }
-      }
-    }
-  } else {
-    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(codeFilePath));
-    if (ext === 'sql') {
-      const vscodeLangMap: Record<string, string> = {
-        mysql: 'mysql',
-        postgresql: 'postgres',
-        mssql: 'sql',
-        oraclesql: 'oraclesql',
-      };
-      const vscodeLangId = vscodeLangMap[targetLang] || 'sql';
-      try {
-        await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId);
-      } catch {
-        try {
-          await vscode.languages.setTextDocumentLanguage(doc, 'sql');
-        } catch {}
-      }
-    }
-    await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
+  if (visibleProblemEditor) {
+    // A tab for this problem is already visible — leave it untouched.
+    // Only the webview (problem statement) is refreshed above.
+    return;
   }
+
+  // No visible editor for this problem — open the target language file.
+  const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(codeFilePath));
+  if (ext === 'sql') {
+    const vscodeLangMap: Record<string, string> = {
+      mysql: 'mysql',
+      postgresql: 'postgres',
+      mssql: 'sql',
+      oraclesql: 'oraclesql',
+    };
+    const vscodeLangId = vscodeLangMap[targetLang] || 'sql';
+    try {
+      await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId);
+    } catch {
+      try {
+        await vscode.languages.setTextDocumentLanguage(doc, 'sql');
+      } catch {}
+    }
+  }
+  await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
 }
 
 /**
@@ -799,23 +821,7 @@ async function handleTestSolution(
   // Extract solution code by stripping boilerplate
   const fileContent = editor.document.getText();
 
-  const ext = path.extname(filePath).replace('.', '');
-  const extToLangMap: Record<string, string> = {
-    cpp: 'cpp',
-    java: 'java',
-    py: 'python3',
-    js: 'javascript',
-    ts: 'typescript',
-    cs: 'csharp',
-    c: 'c',
-    go: 'golang',
-    kt: 'kotlin',
-    swift: 'swift',
-    rs: 'rust',
-    rb: 'ruby',
-    php: 'php',
-  };
-  const submitLang = extToLangMap[ext] || metadata.lang;
+  const submitLang = deriveLangFromExtension(filePath) ?? metadata.lang;
 
   const solutionCode = BoilerplateManager.extractSolutionCode(
     submitLang,
@@ -906,23 +912,7 @@ async function handleSubmitSolution(
   // Extract solution code by stripping boilerplate
   const fileContent = editor.document.getText();
 
-  const ext = path.extname(filePath).replace('.', '');
-  const extToLangMap: Record<string, string> = {
-    cpp: 'cpp',
-    java: 'java',
-    py: 'python3',
-    js: 'javascript',
-    ts: 'typescript',
-    cs: 'csharp',
-    c: 'c',
-    go: 'golang',
-    kt: 'kotlin',
-    swift: 'swift',
-    rs: 'rust',
-    rb: 'ruby',
-    php: 'php',
-  };
-  const submitLang = extToLangMap[ext] || metadata.lang;
+  const submitLang = deriveLangFromExtension(filePath) ?? metadata.lang;
 
   const solutionCode = BoilerplateManager.extractSolutionCode(
     submitLang,
@@ -1014,14 +1004,18 @@ async function handleChangeLanguage(
     return;
   }
 
+  // Derive the current language from the active tab's file extension
+  // instead of relying on metadata.lang, which may be stale.
+  const activeLang = deriveLangFromExtension(filePath) ?? metadata.lang;
+
   const langItems = details.codeSnippets.map((snippet) => ({
     label: snippet.lang,
-    description: snippet.langSlug === metadata.lang ? '(current)' : '',
+    description: snippet.langSlug === activeLang ? '(current)' : '',
     value: snippet.langSlug,
   }));
 
   const selected = await vscode.window.showQuickPick(langItems, {
-    placeHolder: `Current: ${metadata.lang} — Select a new language`,
+    placeHolder: `Current: ${activeLang} — Select a new language`,
     matchOnDescription: true,
   });
 
@@ -1029,7 +1023,7 @@ async function handleChangeLanguage(
     return;
   }
 
-  if (selected.value === metadata.lang) {
+  if (selected.value === activeLang) {
     const confirm = await vscode.window.showWarningMessage(
       `Do you want to reset the editor to the default ${selected.label} snippet? This will overwrite your current code.`,
       { modal: true },
@@ -1077,12 +1071,9 @@ async function handleChangeLanguage(
   const snippet = details.codeSnippets.find((s) => s.langSlug === newLang);
   const codeSnippet = snippet !== undefined ? snippet.code : '';
 
-  const dbLangs = ['mysql', 'mssql', 'oraclesql', 'postgresql'];
-  if (dbLangs.includes(newLang)) {
-    await config.update('defaultDbLanguage', newLang, vscode.ConfigurationTarget.Global);
-  } else {
-    await config.update('defaultLanguage', newLang, vscode.ConfigurationTarget.Global);
-  }
+  // NOTE: We intentionally do NOT update the global defaultLanguage setting here.
+  // The language switcher only changes the language for this specific problem.
+  // Use the "Change Default Language" command to change the global default.
 
   if (!fs.existsSync(newFilePath)) {
     const wrappedCode = BoilerplateManager.wrapWithBoilerplate(newLang, codeSnippet);
@@ -1278,7 +1269,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (!editor) return;
       const metadata = readProblemMetadata(editor.document.uri.fsPath);
       if (metadata) {
-        void handleOpenProblem(authManager, context, metadata.titleSlug, metadata.lang, false);
+        void handleOpenProblem(authManager, context, metadata.titleSlug, metadata.lang);
       }
     }),
     vscode.commands.registerCommand('better-leetcode.openEditor', () => {
@@ -1366,7 +1357,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         );
         return;
       }
-      void handleOpenProblem(authManager, context, metadata.titleSlug, metadata.lang, false);
+      void handleOpenProblem(authManager, context, metadata.titleSlug, metadata.lang);
     } else if (message.command === 'addTestCase' && message.input) {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
