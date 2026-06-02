@@ -1,5 +1,21 @@
 # AGENTS_HISTORY
 
+## 2026-06-03 — Implement CSRF and Session Fixation Protection
+
+### What was done
+
+1. Implemented a one-time pending authentication marker (`pendingAuth`) on `LeetCodeAuthManager` to prevent CSRF and session-fixation attacks during the Web Authorization callback flow.
+2. Enabled `pendingAuth = true` immediately before launching the web browser authorization URL in `src/extension.ts`.
+3. Validated the authority (host) and path of incoming custom scheme callback URIs in `handleUri` to match the extension's lowercase context ID (e.g. `ayanrocks.better-leetcode`) and `/` or `""` path.
+4. Updated existing test cases in `src/test/suite/leetcode.test.ts` to mock the extension context ID, set `pendingAuth = true` where success or validation flow testing is expected, and asserted that failed callbacks do not persist bad credentials.
+5. Added new unit tests verifying rejection of unauthorized callbacks (due to missing pending requests or incorrect authority/path).
+
+### Files modified
+
+- `src/leetcode/auth.ts`
+- `src/extension.ts`
+- `src/test/suite/leetcode.test.ts`
+
 ## 2026-06-02 — Implement Auth State Refresh & Sidebar Controls
 
 ### What was done

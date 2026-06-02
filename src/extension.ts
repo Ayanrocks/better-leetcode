@@ -97,6 +97,7 @@ async function handleSignIn(
     const uriScheme = vscode.env.uriScheme; // 'vscode', 'vscode-insiders', etc.
     const extensionId = context.extension.id;
     const authUrl = `${endpoint}/authorize-login/${uriScheme}/?path=${extensionId}`;
+    authManager.pendingAuth = true;
     void vscode.env.openExternal(vscode.Uri.parse(authUrl));
     return;
   }

@@ -12,6 +12,7 @@ export class LeetCodeAuthManager {
   private readonly context: vscode.ExtensionContext;
   private userStatus: UserStatus | undefined;
   private readonly _onDidChangeSession = new vscode.EventEmitter<UserStatus | undefined>();
+  public pendingAuth = false;
 
   /**
    * Event fired when the user's session state changes.
@@ -125,6 +126,26 @@ export class LeetCodeAuthManager {
    * @param uri - The callback URI containing the cookie in its query string.
    */
   public async handleUri(uri: vscode.Uri): Promise<void> {
+    const expectedHost = this.context.extension.id.toLowerCase();
+    const actualHost = uri.authority.toLowerCase();
+    if (actualHost !== expectedHost || (uri.path !== '/' && uri.path !== '')) {
+      Logger.getInstance().error(
+        'auth',
+        `Web auth callback rejected: Host or path mismatch. Expected host: ${expectedHost}, path: / or empty. Received host: ${actualHost}, path: ${uri.path}`,
+      );
+      void vscode.window.showErrorMessage('Web authorization failed: invalid callback URI.');
+      return;
+    }
+
+    if (!this.pendingAuth) {
+      Logger.getInstance().error('auth', 'Web auth callback rejected: No pending authentication request found');
+      void vscode.window.showErrorMessage('Web authorization failed: No pending login request found.');
+      return;
+    }
+
+    // Clear the pending flag on both success and error
+    this.pendingAuth = false;
+
     const params = new URLSearchParams(uri.query);
     const cookie = params.get('cookie');
 

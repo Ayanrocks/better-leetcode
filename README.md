@@ -77,7 +77,7 @@ We use GitHub Actions to automate publishing the extension to the Visual Studio 
 
 1. Ensure your extension version is updated in `package.json`.
 2. Push your changes to the `main` branch.
-3. Create a **Release** on GitHub with the new version tag (e.g., `v1.0.0`).
+3. Create a **Release** on GitHub with the new version tag (e.g., `v1.2.0`).
 4. The GitHub Actions workflow will automatically bundle and publish the extension.
 
 *Note: You must have the `VSCE_PAT` secret configured in your repository settings (Settings > Secrets and variables > Actions). This Personal Access Token should be generated from your Azure DevOps organization with "Marketplace" > "Manage" scopes.*

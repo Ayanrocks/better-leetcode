@@ -2,7 +2,7 @@
   "name": "better-leetcode",
   "displayName": "Better Leetcode",
   "description": "A flexible and robust VS Code extension for solving Leetcode problems.",
-  "version": "1.0.2",
+  "version": "1.2.0",
   "publisher": "ayanrocks",
   "repository": "https://github.com/Ayanrocks/better-leetcode",
   "sponsor": {
