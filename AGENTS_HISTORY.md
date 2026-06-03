@@ -1,5 +1,37 @@
 # AGENTS_HISTORY
 
+## 2026-06-03 — Implement CSRF and Session Fixation Protection
+
+### What was done
+
+1. Implemented a one-time pending authentication marker (`pendingAuth`) on `LeetCodeAuthManager` to prevent CSRF and session-fixation attacks during the Web Authorization callback flow.
+2. Enabled `pendingAuth = true` immediately before launching the web browser authorization URL in `src/extension.ts`.
+3. Validated the authority (host) and path of incoming custom scheme callback URIs in `handleUri` to match the extension's lowercase context ID (e.g. `ayanrocks.better-leetcode`) and `/` or `""` path.
+4. Updated existing test cases in `src/test/suite/leetcode.test.ts` to mock the extension context ID, set `pendingAuth = true` where success or validation flow testing is expected, and asserted that failed callbacks do not persist bad credentials.
+5. Added new unit tests verifying rejection of unauthorized callbacks (due to missing pending requests or incorrect authority/path).
+
+### Files modified
+
+- `src/leetcode/auth.ts`
+- `src/extension.ts`
+- `src/test/suite/leetcode.test.ts`
+
+## 2026-06-02 — Implement Auth State Refresh & Sidebar Controls
+
+### What was done
+
+1. Subscribed to `authManager.onDidChangeSession` in `src/extension.ts` to trigger a global refresh via `better-leetcode.refresh` whenever the authentication state changes (such as logging in or out).
+2. Added individual refresh commands (`better-leetcode.refreshDailyChallenge`, `better-leetcode.refreshAllProblems`, `better-leetcode.refreshStudyLists`, and `better-leetcode.refreshContests`) so that clicking the refresh button on a specific view header only refreshes that specific view section.
+3. Corrected extension publisher identifier from `better-leetcode-team` to `ayanrocks` in test suite assertions.
+4. Refactored `statusBar.test.ts` mock implementations and test logic to be fully type-safe, eliminating all explicit `any` types and `@ts-ignore` statements to comply with standard TypeScript guidelines.
+
+### Files modified
+
+- `package.json`
+- `src/extension.ts`
+- `src/test/suite/extension.test.ts`
+- `src/test/suite/statusBar.test.ts`
+
 ## 2026-06-02 — Update README Badges and Add Changelog
 
 ### What was done
@@ -33,3 +65,22 @@ Fixed two bugs in `src/extension.ts`:
 
 ### Test status
 - 61 passing, 4 failing (pre-existing status bar naming mismatches, unrelated)
+
+## 2026-06-02 — Web Authorization Login Flow (v1.1.0)
+
+### What was done
+
+Added a Web Authorization login flow matching LeetCode's official `authorize-login` endpoint, used by `vscode-leetcode`. Users now see a QuickPick with two options:
+
+1. **Web Authorization (Recommended)** — opens browser to `${endpoint}/authorize-login/${uriScheme}/?path=${extensionId}`. LeetCode redirects back to VS Code via custom URI scheme with cookie in query params.
+2. **LeetCode Cookie** — manual fallback using the existing clipboard/paste cookie flow.
+
+### Key changes
+
+- `src/leetcode/auth.ts` — added `handleUri(uri)` method to parse cookie from URI callback and login
+- `src/extension.ts` — split `handleSignIn` into QuickPick + `handleCookieSignIn`; registered `vscode.window.registerUriHandler` in `activate()`; updated `handleShowUser` signature to pass `context`
+- `src/test/suite/leetcode.test.ts` — added 3 tests: valid URI login, missing cookie param, invalid cookie graceful failure
+
+### Test status
+
+- 64 passing, 4 failing (pre-existing status bar naming mismatches, unrelated)

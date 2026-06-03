@@ -12,6 +12,7 @@ export class LeetCodeAuthManager {
   private readonly context: vscode.ExtensionContext;
   private userStatus: UserStatus | undefined;
   private readonly _onDidChangeSession = new vscode.EventEmitter<UserStatus | undefined>();
+  public pendingAuth = false;
 
   /**
    * Event fired when the user's session state changes.
@@ -116,6 +117,65 @@ export class LeetCodeAuthManager {
     await this.context.secrets.delete(LeetCodeAuthManager.SECRET_KEY);
     this.client.clearCredentials();
     this.setSession(undefined);
+  }
+
+  /**
+   * Handles a URI callback from the web authorization flow.
+   * Parses the `cookie` query parameter and authenticates with it.
+   *
+   * @param uri - The callback URI containing the cookie in its query string.
+   */
+  public async handleUri(uri: vscode.Uri): Promise<void> {
+    const expectedHost = this.context.extension.id.toLowerCase();
+    const actualHost = uri.authority.toLowerCase();
+    if (actualHost !== expectedHost || (uri.path !== '/' && uri.path !== '')) {
+      Logger.getInstance().error(
+        'auth',
+        `Web auth callback rejected: Host or path mismatch. Expected host: ${expectedHost}, path: / or empty. Received host: ${actualHost}, path: ${uri.path}`,
+      );
+      void vscode.window.showErrorMessage('Web authorization failed: invalid callback URI.');
+      return;
+    }
+
+    if (!this.pendingAuth) {
+      Logger.getInstance().error('auth', 'Web auth callback rejected: No pending authentication request found');
+      void vscode.window.showErrorMessage('Web authorization failed: No pending login request found.');
+      return;
+    }
+
+    // Clear the pending flag on both success and error
+    this.pendingAuth = false;
+
+    const params = new URLSearchParams(uri.query);
+    const cookie = params.get('cookie');
+
+    if (cookie === null || cookie === '') {
+      Logger.getInstance().warn('auth', 'Web auth callback received without a cookie parameter');
+      void vscode.window.showErrorMessage(
+        'Web authorization failed: no cookie was received. Please try again or use the Cookie method.',
+      );
+      return;
+    }
+
+    try {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'Verifying LeetCode credentials...',
+          cancellable: false,
+        },
+        async () => {
+          await this.login(cookie);
+        },
+      );
+      void vscode.window.showInformationMessage(
+        `Successfully signed in to LeetCode as ${this.userStatus?.username}.`,
+      );
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      Logger.getInstance().error('auth', 'Web auth callback login failed', err);
+      void vscode.window.showErrorMessage(`Web authorization failed: ${errMsg}`);
+    }
   }
 
   /**
