@@ -165,7 +165,27 @@ export class BoilerplateManager {
   static extractSolutionCode(lang: string, fileContent: string, originalSnippet?: string): string {
     const config = BoilerplateManager.getConfig(lang);
 
-    // Strategy 1: Use the original snippet's first line to find the solution start
+    // Strategy 1: Strip the known prefix
+    if (config.prefix !== '') {
+      const prefixTrimmed = config.prefix.trimEnd();
+      const prefixIndex = fileContent.indexOf(prefixTrimmed);
+      if (prefixIndex !== -1) {
+        const afterPrefix = fileContent.substring(prefixIndex + prefixTrimmed.length);
+        let extracted = afterPrefix.replace(/^\n+/, '');
+
+        // Remove suffix boilerplate if present
+        if (config.suffix !== '') {
+          const suffixIndex = extracted.lastIndexOf(config.suffix.trim());
+          if (suffixIndex !== -1) {
+            extracted = extracted.substring(0, suffixIndex).trimEnd();
+          }
+        }
+
+        return extracted;
+      }
+    }
+
+    // Strategy 2: Use the original snippet's first line to find the solution start
     if (originalSnippet !== undefined && originalSnippet !== '') {
       const firstLine = BoilerplateManager.getFirstMeaningfulLine(originalSnippet);
       if (firstLine !== null) {
@@ -183,26 +203,6 @@ export class BoilerplateManager {
 
           return extracted;
         }
-      }
-    }
-
-    // Strategy 2: Strip the known prefix
-    if (config.prefix !== '') {
-      const prefixTrimmed = config.prefix.trimEnd();
-      const prefixIndex = fileContent.indexOf(prefixTrimmed);
-      if (prefixIndex !== -1) {
-        const afterPrefix = fileContent.substring(prefixIndex + prefixTrimmed.length);
-        let extracted = afterPrefix.replace(/^\n+/, '');
-
-        // Remove suffix boilerplate if present
-        if (config.suffix !== '') {
-          const suffixIndex = extracted.lastIndexOf(config.suffix.trim());
-          if (suffixIndex !== -1) {
-            extracted = extracted.substring(0, suffixIndex).trimEnd();
-          }
-        }
-
-        return extracted;
       }
     }
 

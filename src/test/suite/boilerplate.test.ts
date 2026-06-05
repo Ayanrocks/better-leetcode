@@ -87,6 +87,17 @@ class Solution {
       assert.strictEqual(extracted.trim(), userCode.trim());
     });
 
+    test('Strategy 1 (prefix stripping) preserves helper functions written above the main solution code', () => {
+      const prefix = BoilerplateManager.getConfig('golang').prefix;
+      const userCode = `func myHelper() int {\n  return 42\n}\n\nfunc totalWaviness(num1 int64, num2 int64) int64 {\n  return 0\n}`;
+      const fileContent = prefix + userCode;
+      const originalSnippet = `func totalWaviness(num1 int64, num2 int64) int64 {\n  \n}`;
+
+      const extracted = BoilerplateManager.extractSolutionCode('golang', fileContent, originalSnippet);
+      assert.strictEqual(extracted.trim(), userCode.trim());
+      assert.strictEqual(extracted.includes('func myHelper()'), true);
+    });
+
     test('Strategy 3: Fallback to full content', () => {
       const fileContent = `function hello() { return 1; }`;
       const extracted = BoilerplateManager.extractSolutionCode('javascript', fileContent);

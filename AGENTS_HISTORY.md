@@ -1,5 +1,31 @@
 # AGENTS_HISTORY
 
+## 2026-06-05 — Bump version to v1.2.1 and update CHANGELOG.md
+
+### What was done
+
+1. Updated extension version from `1.2.0` to `1.2.1` in `package.json`.
+2. Added a changelog entry in `CHANGELOG.md` under `[1.2.1] - 2026-06-05` documenting the bug fix where helper functions/code defined above the main solution function were incorrectly stripped.
+3. Added the comparison link for `[1.2.1]` at the bottom of `CHANGELOG.md`.
+
+### Files modified
+
+- `package.json`
+- `CHANGELOG.md`
+
+## 2026-06-05 — Fix Boilerplate Code Extraction Order
+
+### What was done
+
+1. Fixed a bug in `BoilerplateManager.extractSolutionCode` where helper functions or structs defined above the main entrypoint function/class were discarded during submission or testing.
+2. Swapped Strategy 1 (originalSnippet matching) and Strategy 2 (known prefix stripping) so that prefix stripping is prioritized. This ensures that the boilerplate prefix is cleanly removed from the top of the file without discarding user-written code that sits above the main LeetCode class/function.
+3. Added a unit test in `src/test/suite/boilerplate.test.ts` to verify that helper functions written above the main solution code are correctly preserved when extracting solution code.
+
+### Files modified
+
+- `src/leetcode/boilerplate.ts`
+- `src/test/suite/boilerplate.test.ts`
+
 ## 2026-06-03 — Implement CSRF and Session Fixation Protection
 
 ### What was done
