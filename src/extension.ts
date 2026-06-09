@@ -307,10 +307,57 @@ async function handleShowUser(
   }
 }
 
+export interface LayoutAction {
+  createWebviewColumn: vscode.ViewColumn | undefined;
+  showEditorColumn: vscode.ViewColumn | undefined;
+  moveEditorToRightGroup: boolean;
+}
+
+/**
+ * Determines the layout actions required to achieve a split view.
+ * 
+ * @param isWebviewOpen Whether the problem webview is currently open anywhere
+ * @param visibleEditorColumn The view column of the visible editor, or undefined if none
+ */
+export function resolveLayoutActions(
+  isWebviewOpen: boolean,
+  visibleEditorColumn: vscode.ViewColumn | undefined
+): LayoutAction {
+  if (isWebviewOpen && visibleEditorColumn !== undefined) {
+    return {
+      createWebviewColumn: undefined,
+      showEditorColumn: visibleEditorColumn,
+      moveEditorToRightGroup: false,
+    };
+  }
+
+  if (!isWebviewOpen && visibleEditorColumn !== undefined) {
+    if (visibleEditorColumn === vscode.ViewColumn.One) {
+      return {
+        createWebviewColumn: vscode.ViewColumn.One,
+        showEditorColumn: vscode.ViewColumn.One,
+        moveEditorToRightGroup: true,
+      };
+    } else {
+      return {
+        createWebviewColumn: vscode.ViewColumn.One,
+        showEditorColumn: visibleEditorColumn,
+        moveEditorToRightGroup: false,
+      };
+    }
+  }
+
+  return {
+    createWebviewColumn: vscode.ViewColumn.One,
+    showEditorColumn: vscode.ViewColumn.Two,
+    moveEditorToRightGroup: false,
+  };
+}
+
 /**
  * Handles opening a problem by generating local files and displaying description & code side-by-side.
  */
-async function handleOpenProblem(
+export async function handleOpenProblem(
   authManager: LeetCodeAuthManager,
   context: vscode.ExtensionContext,
   problemSlug: string,
@@ -517,21 +564,29 @@ async function handleOpenProblem(
   }
 
   // Check if a *visible* editor tab for this problem is already open.
-  // We use visibleTextEditors (actual on-screen tabs) instead of
-  // workspace.textDocuments (which includes closed/cached documents).
   const visibleProblemEditor = vscode.window.visibleTextEditors.find((e) => {
     const meta = readProblemMetadata(e.document.uri.fsPath);
     return meta !== null && meta.titleSlug === problemSlug;
   });
 
-  // Open Webview in Column One
-  ProblemWebview.createOrShow(context.extensionUri, details);
+  const isWebviewOpen = !!ProblemWebview.currentPanel;
+  const layout = resolveLayoutActions(isWebviewOpen, visibleProblemEditor?.viewColumn);
 
   if (visibleProblemEditor) {
-    // A tab for this problem is already visible — leave it untouched.
-    // Only the webview (problem statement) is refreshed above.
+    ProblemWebview.createOrShow(context.extensionUri, details, layout.createWebviewColumn);
+    
+    if (layout.showEditorColumn !== undefined) {
+      await vscode.window.showTextDocument(visibleProblemEditor.document, layout.showEditorColumn);
+    }
+    
+    if (layout.moveEditorToRightGroup) {
+      await vscode.commands.executeCommand('workbench.action.moveEditorToRightGroup');
+    }
     return;
   }
+
+  // Fallback: Editor is closed
+  ProblemWebview.createOrShow(context.extensionUri, details, layout.createWebviewColumn);
 
   // No visible editor for this problem — open the target language file.
   const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(codeFilePath));
@@ -551,7 +606,7 @@ async function handleOpenProblem(
       } catch {}
     }
   }
-  await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
+  await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Two, preserveFocus: false });
 }
 
 /**

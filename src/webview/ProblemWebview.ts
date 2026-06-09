@@ -12,14 +12,18 @@ export class ProblemWebview {
   private readonly _panel: vscode.WebviewPanel;
   private _disposables: vscode.Disposable[] = [];
 
-  public static createOrShow(extensionUri: vscode.Uri, details: ProblemDetails): void {
-    const column = vscode.ViewColumn.One;
-
+  public static createOrShow(
+    extensionUri: vscode.Uri, 
+    details: ProblemDetails, 
+    viewColumn?: vscode.ViewColumn
+  ): void {
     if (ProblemWebview.currentPanel) {
-      ProblemWebview.currentPanel._panel.reveal(column);
+      ProblemWebview.currentPanel._panel.reveal(viewColumn);
       ProblemWebview.currentPanel.update(details);
       return;
     }
+
+    const column = viewColumn || vscode.ViewColumn.One;
 
     const panel = vscode.window.createWebviewPanel(
       ProblemWebview.viewType,

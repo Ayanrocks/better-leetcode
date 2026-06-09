@@ -8,6 +8,7 @@ import {
   deriveFromHtmlContent,
   deriveLangFromExtension,
   EXT_TO_LANG_MAP,
+  resolveLayoutActions,
 } from '../../extension';
 
 suite('Extension Test Suite', () => {
@@ -129,6 +130,36 @@ suite('Extension Test Suite', () => {
 
       const htmlZeroExamples = '<div>No input tags here</div>';
       assert.strictEqual(deriveFromHtmlContent(htmlZeroExamples, examples), null);
+    });
+
+    suite('resolveLayoutActions', () => {
+      test('when both webview and editor are open, keeps their columns and does not move', () => {
+        const layout = resolveLayoutActions(true, vscode.ViewColumn.Two);
+        assert.strictEqual(layout.createWebviewColumn, undefined);
+        assert.strictEqual(layout.showEditorColumn, vscode.ViewColumn.Two);
+        assert.strictEqual(layout.moveEditorToRightGroup, false);
+      });
+
+      test('when webview is closed and editor is in Column 1, splits to Column 2', () => {
+        const layout = resolveLayoutActions(false, vscode.ViewColumn.One);
+        assert.strictEqual(layout.createWebviewColumn, vscode.ViewColumn.One);
+        assert.strictEqual(layout.showEditorColumn, vscode.ViewColumn.One);
+        assert.strictEqual(layout.moveEditorToRightGroup, true);
+      });
+
+      test('when webview is closed and editor is in Column 2, opens webview in Column 1', () => {
+        const layout = resolveLayoutActions(false, vscode.ViewColumn.Two);
+        assert.strictEqual(layout.createWebviewColumn, vscode.ViewColumn.One);
+        assert.strictEqual(layout.showEditorColumn, vscode.ViewColumn.Two);
+        assert.strictEqual(layout.moveEditorToRightGroup, false);
+      });
+
+      test('when editor is closed (undefined column), uses default split layout', () => {
+        const layout = resolveLayoutActions(false, undefined);
+        assert.strictEqual(layout.createWebviewColumn, vscode.ViewColumn.One);
+        assert.strictEqual(layout.showEditorColumn, vscode.ViewColumn.Two);
+        assert.strictEqual(layout.moveEditorToRightGroup, false);
+      });
     });
   });
 
