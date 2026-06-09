@@ -77,7 +77,9 @@ export class ProblemWebview {
 
   public update(details: ProblemDetails): void {
     this.currentProblemSlug = details.titleSlug;
-    this.currentTopicId = details.topicId;
+    if (details.topicId !== undefined) {
+      this.currentTopicId = details.topicId;
+    }
     this._panel.title = `${details.questionFrontendId}. ${details.title}`;
     this._panel.webview.html = this._getHtmlForWebview(details);
   }

@@ -591,11 +591,10 @@ async function handleSearch(allProblemsProvider: AllProblemsTreeDataProvider): P
 async function handleShowDiscussions(
   authManager: LeetCodeAuthManager,
   context: vscode.ExtensionContext,
-  titleSlug: string,
   topicId: number,
   title: string
 ): Promise<void> {
-  DiscussionWebview.createOrShow(context.extensionUri, authManager.getClient(), titleSlug, topicId, title);
+  DiscussionWebview.createOrShow(context.extensionUri, authManager.getClient(), topicId, title);
 }
 
 /**
@@ -1343,7 +1342,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand('better-leetcode.showDiscussions', (args: { titleSlug: string, topicId: number, title: string }) => {
       // Defer instantiation to handleShowDiscussions to keep extension.ts clean
-      void handleShowDiscussions(authManager, context, args.titleSlug, args.topicId, args.title);
+      void handleShowDiscussions(authManager, context, args.topicId, args.title);
     }),
     vscode.commands.registerCommand('better-leetcode.openProblem', (problemSlug: string) => {
       void handleOpenProblem(authManager, context, problemSlug);

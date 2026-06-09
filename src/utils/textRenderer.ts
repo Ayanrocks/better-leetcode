@@ -10,28 +10,19 @@ export class TextRenderer {
   public static render(content: string): string {
     if (!content) return '';
 
-    let result = content;
-
-    // 1. Unescape unicode sequences (e.g. \uD83D\uDE02 -> 😂)
-    result = result.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => {
-      return String.fromCharCode(parseInt(hex, 16));
+    return content.replace(/\\(u[0-9a-fA-F]{4}|n|r|t|"|'|\\)/g, (match, code: string) => {
+      if (code.startsWith('u')) {
+        return String.fromCharCode(parseInt(code.substring(1), 16));
+      }
+      switch (code) {
+        case 'n': return '<br/>';
+        case 'r': return '';
+        case 't': return '&nbsp;&nbsp;&nbsp;&nbsp;';
+        case '"': return '"';
+        case "'": return "'";
+        case '\\': return '\\';
+        default: return match;
+      }
     });
-
-    // 2. Unescape new lines and carriage returns
-    // Replacing literal \n with <br/> since this will be injected into HTML
-    result = result.replace(/\\n/g, '<br/>');
-    result = result.replace(/\\r/g, '');
-
-    // 3. Unescape tabs
-    result = result.replace(/\\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
-
-    // 4. Unescape quotes and slashes
-    result = result.replace(/\\"/g, '"');
-    result = result.replace(/\\'/g, "'");
-    
-    // 5. Unescape double slashes
-    result = result.replace(/\\\\/g, '\\');
-
-    return result;
   }
 }

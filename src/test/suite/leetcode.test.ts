@@ -347,6 +347,73 @@ suite('LeetCode Module Test Suite', () => {
       assert.strictEqual(problems.length, 3);
       assert.strictEqual(reqCount, 3);
     });
+
+    test('Should fetch discussion comments for a topic', async () => {
+      const client = new LeetCodeClient();
+      const mockDiscussionResponse = {
+        topicComments: {
+          totalNum: 1,
+          data: [
+            {
+              id: 1234,
+              numChildren: 0,
+              post: {
+                id: 5678,
+                creationDate: 1234567890,
+                content: 'Great solution!',
+                voteUpCount: 10,
+                author: { username: 'testuser', profile: { userAvatar: 'avatarUrl' } }
+              }
+            }
+          ]
+        }
+      };
+
+      fetchMock = (_url, init) => {
+        const bodyStr = init?.body as string;
+        assert.ok(bodyStr.includes('questionDiscussComments'));
+        assert.ok(bodyStr.includes('"topicId":1'));
+        assert.ok(bodyStr.includes('"pageNo":1'));
+        return Promise.resolve(createMockResponse({ data: mockDiscussionResponse }));
+      };
+
+      const res = await client.getDiscussionComments(1, 1, 15, 'most_votes');
+      assert.deepStrictEqual(res, mockDiscussionResponse.topicComments);
+    });
+
+    test('Should fetch comment replies', async () => {
+      const client = new LeetCodeClient();
+      const mockRepliesResponse = {
+        commentReplyConnection: {
+          totalNum: 1,
+          edges: [
+            {
+              node: {
+                id: 4321,
+                numChildren: 0,
+                post: {
+                  id: 8765,
+                  creationDate: 1234567890,
+                  content: 'I agree',
+                  voteUpCount: 5,
+                  author: { username: 'replyuser', profile: { userAvatar: 'avatarUrl' } }
+                }
+              }
+            }
+          ]
+        }
+      };
+
+      fetchMock = (_url, init) => {
+        const bodyStr = init?.body as string;
+        assert.ok(bodyStr.includes('commentReplies'));
+        assert.ok(bodyStr.includes('"commentId":"1234"'));
+        return Promise.resolve(createMockResponse({ data: mockRepliesResponse }));
+      };
+
+      const res = await client.getCommentReplies('1234', 0, 10);
+      assert.deepStrictEqual(res, mockRepliesResponse.commentReplyConnection);
+    });
   });
 
   suite('LeetCodeAuthManager', () => {

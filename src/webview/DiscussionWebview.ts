@@ -8,16 +8,13 @@ export class DiscussionWebview {
   public static readonly viewType = 'discussionWebview';
 
   private readonly _panel: vscode.WebviewPanel;
-  private readonly _extensionUri: vscode.Uri;
   private readonly _client: LeetCodeClient;
   private readonly _topicId: number;
-  private readonly _titleSlug: string;
   private _disposables: vscode.Disposable[] = [];
 
   public static async createOrShow(
     extensionUri: vscode.Uri,
     client: LeetCodeClient,
-    titleSlug: string,
     topicId: number,
     title: string
   ): Promise<void> {
@@ -41,7 +38,7 @@ export class DiscussionWebview {
       }
     );
 
-    const discussionWebview = new DiscussionWebview(panel, extensionUri, client, titleSlug, topicId);
+    const discussionWebview = new DiscussionWebview(panel, client, topicId);
     DiscussionWebview.currentPanels.set(topicId, discussionWebview);
   }
 
@@ -54,15 +51,11 @@ export class DiscussionWebview {
 
   private constructor(
     panel: vscode.WebviewPanel,
-    extensionUri: vscode.Uri,
     client: LeetCodeClient,
-    titleSlug: string,
     topicId: number
   ) {
     this._panel = panel;
-    this._extensionUri = extensionUri;
     this._client = client;
-    this._titleSlug = titleSlug;
     this._topicId = topicId;
 
     this._update();
