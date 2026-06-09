@@ -17,8 +17,14 @@
 
 Better LeetCode brings the full LeetCode experience directly into your IDE with native support and no annoying boilerplate code.
 
+- **Web Authorization Login**: Authenticate securely using LeetCode's official authorize-login flow directly via your browser with built-in CSRF protection.
+- **Direct SQL Support**: First-class support for database problems with customized SQL language configurations (MySQL, MS SQL, Oracle SQL, PostgreSQL).
+- **Problem Hints**: Toggle and view hints line-by-line directly in the problem description view.
 - **Flexible Submission**: Submit solutions against default test cases or hidden test cases effortlessly.
 - **Language Switch on the Fly**: Change your target programming language seamlessly from the editor.
+- **Interactive Configurations**: Easily change your default language or database language on the fly.
+- **Quick Shortcuts**: Speed up your workflow with keyboard shortcuts (`Cmd+;` / `Ctrl+;` to test, `Cmd+Enter` / `Ctrl+Enter` to submit).
+- **Intuitive UI Refreshing**: Automatic refreshing on login/logout, and separate refresh triggers for Daily Challenge, Problems list, Study Lists, and Contests.
 - **No Boilerplate Comments**: Write clean, standard code; the extension natively manages the underlying boilerplate.
 - **Native VS Code Tooling**: Leverage VS Code's rich syntax highlighting, IntelliSense, auto-complete, and extensions.
 - **Integrated Debugger**: Step through your code using VS Code's native debugger.
@@ -32,16 +38,25 @@ Better LeetCode brings the full LeetCode experience directly into your IDE with 
 
 ## 🔑 Authentication / Login
 
-To interact with LeetCode (fetch premium problems, submit solutions, track progress), you need to log in by providing your LeetCode Session Token and CSRF Token.
+To interact with LeetCode (fetch premium problems, submit solutions, track progress), you need to authenticate the extension. Better LeetCode supports two secure login methods:
 
+### 1. Web Authorization (Recommended)
+
+1. Click the **Sign In** button in the sidebar or run the command **`Better LeetCode: Sign In`** from the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`).
+2. Select **Web Authorization (Recommended)**.
+3. Your browser will open the official LeetCode authorization page.
+4. Log in (if you aren't already) and authorize. The browser will securely redirect you back to VS Code, logging you in automatically.
+
+### 2. LeetCode Cookie (Fallback)
+
+If the web login flow does not work for your environment, you can manually paste your cookies:
 1. Go to [LeetCode.com](https://leetcode.com) and log in.
 2. Open your browser's Developer Tools (usually `F12` or `Cmd+Option+I`).
 3. Navigate to the **Application** tab (Chrome/Edge) or **Storage** tab (Firefox).
 4. Under **Cookies**, select `https://leetcode.com`.
 5. Find the cookie named `LEETCODE_SESSION` and copy its value.
 6. Find the cookie named `csrftoken` and copy its value.
-7. In VS Code, run the command **`Better LeetCode: Sign In`** from the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`).
-8. Paste the tokens when prompted to authenticate your extension.
+7. In VS Code, run **`Better LeetCode: Sign In`**, select **LeetCode Cookie**, and paste the tokens when prompted to authenticate.
 
 ---
 
@@ -77,7 +92,7 @@ We use GitHub Actions to automate publishing the extension to the Visual Studio 
 
 1. Ensure your extension version is updated in `package.json`.
 2. Push your changes to the `main` branch.
-3. Create a **Release** on GitHub with the new version tag (e.g., `v1.2.0`).
+3. Create a **Release** on GitHub with the new version tag (e.g., `v1.3.0`).
 4. The GitHub Actions workflow will automatically bundle and publish the extension.
 
 *Note: You must have the `VSCE_PAT` secret configured in your repository settings (Settings > Secrets and variables > Actions). This Personal Access Token should be generated from your Azure DevOps organization with "Marketplace" > "Manage" scopes.*

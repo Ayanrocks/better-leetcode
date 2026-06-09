@@ -1,5 +1,19 @@
 # AGENTS_HISTORY
 
+## 2026-06-10 — Bump Version to v1.3.0 and Update Documentation
+
+### What was done
+
+1. Bumped the extension version to `1.3.0` in `package.json`.
+2. Updated `CHANGELOG.md` with the additions in version `1.3.0` (Hints support and CSRF/Session Fixation protection for Web Authorization callback flow) and updated the comparison links.
+3. Updated `README.md` to detail new features since `v1.0.0` (including Web Authorization login, direct SQL support, problem hints, interactive language switching, new shortcuts, and UI improvements) and documented the browser-based authorization flow.
+
+### Files modified
+
+- `package.json`
+- `CHANGELOG.md`
+- `README.md`
+
 ## 2026-06-09 — Add Hints Support
 
 ### What was done
