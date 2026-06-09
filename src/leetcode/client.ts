@@ -370,6 +370,7 @@ export class LeetCodeClient {
           sampleTestCase
           exampleTestcases
           metaData
+          hints
           topicTags {
             name
             slug

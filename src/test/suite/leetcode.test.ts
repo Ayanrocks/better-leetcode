@@ -156,7 +156,7 @@ suite('LeetCode Module Test Suite', () => {
       assert.deepStrictEqual(status, mockStatus);
     });
 
-    test('Should fetch problem details with topic tags', async () => {
+    test('Should fetch problem details with topic tags and hints', async () => {
       const client = new LeetCodeClient();
       const mockDetails = {
         questionId: '1',
@@ -174,11 +174,13 @@ suite('LeetCode Module Test Suite', () => {
           { name: 'Array', slug: 'array' },
           { name: 'Hash Table', slug: 'hash-table' },
         ],
+        hints: ['Hint 1', 'Hint 2'],
       };
 
       fetchMock = (_url, init) => {
         const bodyStr = init?.body as string;
         assert.ok(bodyStr.includes('topicTags'));
+        assert.ok(bodyStr.includes('hints'));
         return Promise.resolve(
           createMockResponse({
             data: { question: mockDetails },
@@ -193,6 +195,12 @@ suite('LeetCode Module Test Suite', () => {
       assert.strictEqual(tags.length, 2);
       assert.strictEqual(tags[0]!.name, 'Array');
       assert.strictEqual(tags[1]!.name, 'Hash Table');
+
+      assert.ok(details.hints);
+      const hints = details.hints!;
+      assert.strictEqual(hints.length, 2);
+      assert.strictEqual(hints[0], 'Hint 1');
+      assert.strictEqual(hints[1], 'Hint 2');
     });
 
     test('Should fetch contests list successfully', async () => {

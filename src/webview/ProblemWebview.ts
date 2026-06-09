@@ -173,6 +173,24 @@ export class ProblemWebview {
         transform: translateY(-1px);
       }
       
+      .hints-list {
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px;
+        background: rgba(128, 128, 128, 0.05);
+        border-radius: 8px;
+        border: 1px solid rgba(128, 128, 128, 0.1);
+      }
+      .hint-item {
+        font-size: 13px;
+        color: var(--vscode-editor-foreground);
+      }
+      .hint-item strong {
+        color: var(--vscode-textPreformat-foreground, var(--vscode-editor-foreground));
+      }
+
       pre {
         background-color: var(--vscode-textCodeBlock-background, rgba(0, 0, 0, 0.2));
         padding: 12px 16px;
@@ -208,6 +226,18 @@ export class ProblemWebview {
       `
           : ''
       }
+      ${
+        details.hints && details.hints.length > 0
+          ? `
+        <button id="hints-toggle" class="tags-toggle-btn">
+          <span>Show Hints</span>
+          <svg class="chevron" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z"/>
+          </svg>
+        </button>
+      `
+          : ''
+      }
     </div>
     ${
       details.topicTags && details.topicTags.length > 0
@@ -220,24 +250,40 @@ export class ProblemWebview {
     `
         : ''
     }
+    ${
+      details.hints && details.hints.length > 0
+        ? `
+      <div id="hints-container" class="tags-container">
+        <div class="hints-list">
+          ${details.hints.map((hint, index) => `<div class="hint-item"><strong>Hint ${index + 1}:</strong> <span>${hint}</span></div>`).join('')}
+        </div>
+      </div>
+    `
+        : ''
+    }
     <div class="content">
       ${details.content}
     </div>
 
     <script>
       (function() {
-        const toggleBtn = document.getElementById('tags-toggle');
-        const container = document.getElementById('tags-container');
-        if (toggleBtn && container) {
-          toggleBtn.addEventListener('click', () => {
-            const isExpanded = container.classList.toggle('expanded');
-            toggleBtn.classList.toggle('active', isExpanded);
-            const btnText = toggleBtn.querySelector('span');
-            if (btnText) {
-              btnText.textContent = isExpanded ? 'Hide Tags' : 'Show Tags';
-            }
-          });
+        function setupToggle(btnId, containerId, showText, hideText) {
+          const toggleBtn = document.getElementById(btnId);
+          const container = document.getElementById(containerId);
+          if (toggleBtn && container) {
+            toggleBtn.addEventListener('click', () => {
+              const isExpanded = container.classList.toggle('expanded');
+              toggleBtn.classList.toggle('active', isExpanded);
+              const btnText = toggleBtn.querySelector('span');
+              if (btnText) {
+                btnText.textContent = isExpanded ? hideText : showText;
+              }
+            });
+          }
         }
+
+        setupToggle('tags-toggle', 'tags-container', 'Show Tags', 'Hide Tags');
+        setupToggle('hints-toggle', 'hints-container', 'Show Hints', 'Hide Hints');
       })();
     </script>
 </body>

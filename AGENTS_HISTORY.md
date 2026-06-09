@@ -1,5 +1,19 @@
 # AGENTS_HISTORY
 
+## 2026-06-09 — Add Hints Support
+
+### What was done
+
+1. Added `hints?: string[]` to `ProblemDetails` interface.
+2. Updated GraphQL query to fetch `hints`.
+3. Updated `ProblemWebview` to conditionally show a "Show Hints" dropdown to view hints line by line.
+
+### Files modified
+
+- `src/leetcode/types.ts`
+- `src/leetcode/client.ts`
+- `src/webview/ProblemWebview.ts`
+
 ## 2026-06-05 — Bump version to v1.2.1 and update CHANGELOG.md
 
 ### What was done

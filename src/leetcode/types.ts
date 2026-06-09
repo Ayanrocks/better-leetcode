@@ -78,6 +78,7 @@ export interface ProblemDetails {
   metaData?: string;
   paidOnly: boolean;
   topicTags?: Tag[];
+  hints?: string[];
 }
 
 export interface StudyPlanQuestion {
