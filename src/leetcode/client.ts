@@ -354,6 +354,9 @@ export class LeetCodeClient {
   public async getProblemDetails(titleSlug: string): Promise<ProblemDetails> {
     const queryStr = `
       query questionData($titleSlug: String!) {
+        questionDiscussionTopic(questionSlug: $titleSlug) {
+          id
+        }
         question(titleSlug: $titleSlug) {
           questionId
           questionFrontendId
@@ -379,7 +382,15 @@ export class LeetCodeClient {
       }
     `;
     const variables = { titleSlug };
-    const data = await this.query<{ question: ProblemDetails }>(queryStr, variables);
+    const data = await this.query<{ 
+      question: ProblemDetails;
+      questionDiscussionTopic?: { id: number };
+    }>(queryStr, variables);
+    
+    if (data.question && data.questionDiscussionTopic?.id) {
+      data.question.topicId = data.questionDiscussionTopic.id;
+    }
+    
     return data.question;
   }
 
@@ -779,5 +790,156 @@ export class LeetCodeClient {
         title_slug: q.titleSlug || '',
       })),
     };
+  }
+
+  /**
+   * Fetches top-level discussion comments for a specific topic (problem).
+   */
+  public async getDiscussionComments(
+    topicId: number,
+    pageNo: number = 1,
+    numPerPage: number = 10,
+    orderBy: string = 'newest_to_oldest',
+  ): Promise<import('./types').TopicCommentsResponse | undefined> {
+    const queryStr = `
+      query questionDiscussComments($topicId: Int!, $orderBy: String = "newest_to_oldest", $pageNo: Int = 1, $numPerPage: Int = 10) {
+        topicComments(
+          topicId: $topicId
+          orderBy: $orderBy
+          pageNo: $pageNo
+          numPerPage: $numPerPage
+        ) {
+          data {
+            id
+            ipRegion
+            pinned
+            pinnedBy {
+              username
+            }
+            post {
+              ...DiscussPost
+            }
+            intentionTag {
+              slug
+            }
+            numChildren
+          }
+          totalNum
+        }
+      }
+      
+      fragment DiscussPost on PostNode {
+        id
+        voteCount
+        voteUpCount
+        voteStatus
+        content
+        updationDate
+        creationDate
+        status
+        isHidden
+        anonymous
+        author {
+          isDiscussAdmin
+          isDiscussStaff
+          username
+          nameColor
+          activeBadge {
+            displayName
+            icon
+          }
+          profile {
+            userAvatar
+            reputation
+            realName
+            certificationLevel
+          }
+          isActive
+        }
+        authorIsModerator
+        isOwnPost
+        isSerialized
+      }
+    `;
+
+    const variables = { topicId, pageNo, numPerPage, orderBy };
+    try {
+      const data = await this.query<{ topicComments: import('./types').TopicCommentsResponse }>(queryStr, variables);
+      return data?.topicComments;
+    } catch (err) {
+      Logger.getInstance().error('api', 'Failed to fetch discussion comments', err);
+      return undefined;
+    }
+  }
+
+  /**
+   * Fetches replies for a specific top-level discussion comment.
+   */
+  public async getCommentReplies(
+    commentId: string,
+    skip: number = 0,
+    first: number = 10,
+  ): Promise<import('./types').CommentReplyConnection | undefined> {
+    const queryStr = `
+      query commentReplies($commentId: ID!, $skip: Int, $first: Int) {
+        commentReplyConnection(commentId: $commentId, skip: $skip, first: $first) {
+          totalNum
+          edges {
+            node {
+              id
+              pinned
+              pinnedBy {
+                username
+              }
+              post {
+                ...DiscussPost
+              }
+            }
+          }
+        }
+      }
+      
+      fragment DiscussPost on PostNode {
+        id
+        voteCount
+        voteUpCount
+        voteStatus
+        content
+        updationDate
+        creationDate
+        status
+        isHidden
+        anonymous
+        author {
+          isDiscussAdmin
+          isDiscussStaff
+          username
+          nameColor
+          activeBadge {
+            displayName
+            icon
+          }
+          profile {
+            userAvatar
+            reputation
+            realName
+            certificationLevel
+          }
+          isActive
+        }
+        authorIsModerator
+        isOwnPost
+        isSerialized
+      }
+    `;
+
+    const variables = { commentId, skip, first };
+    try {
+      const data = await this.query<{ commentReplyConnection: import('./types').CommentReplyConnection }>(queryStr, variables);
+      return data?.commentReplyConnection;
+    } catch (err) {
+      Logger.getInstance().error('api', 'Failed to fetch comment replies', err);
+      return undefined;
+    }
   }
 }

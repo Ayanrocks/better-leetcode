@@ -79,6 +79,7 @@ export interface ProblemDetails {
   paidOnly: boolean;
   topicTags?: Tag[];
   hints?: string[];
+  topicId?: number;
 }
 
 export interface StudyPlanQuestion {
@@ -185,4 +186,65 @@ export interface ContestInfo {
     duration: number;
   };
   questions: ContestQuestion[];
+}
+
+export interface DiscussAuthorProfile {
+  userAvatar: string;
+  reputation: number;
+  realName: string;
+  certificationLevel: number;
+}
+
+export interface DiscussAuthor {
+  isDiscussAdmin: boolean;
+  isDiscussStaff: boolean;
+  username: string;
+  nameColor: string | null;
+  activeBadge: { displayName: string; icon: string } | null;
+  profile: DiscussAuthorProfile;
+  isActive: boolean;
+}
+
+export interface DiscussPost {
+  id: number;
+  voteCount: number;
+  voteUpCount: number;
+  voteStatus: number;
+  content: string;
+  updationDate: number;
+  creationDate: number;
+  status: string | null;
+  isHidden: boolean;
+  anonymous: boolean;
+  author: DiscussAuthor;
+  authorIsModerator: boolean;
+  isOwnPost: boolean;
+  isSerialized: boolean;
+}
+
+export interface CommentNode {
+  id: number;
+  ipRegion: string | null;
+  pinned: boolean;
+  pinnedBy: { username: string } | null;
+  post: DiscussPost;
+  intentionTag: { slug: string } | null;
+  numChildren: number;
+}
+
+export interface TopicCommentsResponse {
+  data: CommentNode[];
+  totalNum: number;
+}
+
+export interface ReplyNode {
+  id: number;
+  pinned: boolean;
+  pinnedBy: { username: string } | null;
+  post: DiscussPost;
+}
+
+export interface CommentReplyConnection {
+  totalNum: number;
+  edges: { node: ReplyNode }[];
 }
