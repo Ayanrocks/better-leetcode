@@ -4,6 +4,14 @@ All notable changes to the "better-leetcode" extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-06-10
+
+### Added
+
+- Threaded discussion browsing using `DiscussionWebview` with paginated comment and reply fetching, reply pagination, navigation, and seamless UI integration.
+- Dropdown in the problem details panel to display problem hints line-by-line.
+- CSRF and session fixation protection for Web Authorization callback flow.
+
 ## [1.2.1] - 2026-06-05
 
 ### Fixed
@@ -60,6 +68,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this 
 - Native VS Code integration (syntax highlighting, IntelliSense, auto-complete).
 - Standard testing and solution submission against LeetCode engines.
 
+[1.3.0]: https://github.com/Ayanrocks/better-leetcode/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/Ayanrocks/better-leetcode/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Ayanrocks/better-leetcode/compare/v1.0.2...v1.2.0
 [1.0.2]: https://github.com/Ayanrocks/better-leetcode/compare/v1.0.1...v1.0.2

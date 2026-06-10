@@ -93,7 +93,11 @@ class Solution {
       const fileContent = prefix + userCode;
       const originalSnippet = `func totalWaviness(num1 int64, num2 int64) int64 {\n  \n}`;
 
-      const extracted = BoilerplateManager.extractSolutionCode('golang', fileContent, originalSnippet);
+      const extracted = BoilerplateManager.extractSolutionCode(
+        'golang',
+        fileContent,
+        originalSnippet,
+      );
       assert.strictEqual(extracted.trim(), userCode.trim());
       assert.strictEqual(extracted.includes('func myHelper()'), true);
     });

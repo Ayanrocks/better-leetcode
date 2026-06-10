@@ -138,8 +138,13 @@ export class LeetCodeAuthManager {
     }
 
     if (!this.pendingAuth) {
-      Logger.getInstance().error('auth', 'Web auth callback rejected: No pending authentication request found');
-      void vscode.window.showErrorMessage('Web authorization failed: No pending login request found.');
+      Logger.getInstance().error(
+        'auth',
+        'Web auth callback rejected: No pending authentication request found',
+      );
+      void vscode.window.showErrorMessage(
+        'Web authorization failed: No pending login request found.',
+      );
       return;
     }
 

@@ -8,6 +8,7 @@ import { AllProblemsTreeDataProvider } from './tree/AllProblemsTreeDataProvider'
 import { StudyListsTreeDataProvider } from './tree/StudyListsTreeDataProvider';
 import { ContestsTreeDataProvider } from './tree/ContestsTreeDataProvider';
 import { ProblemWebview } from './webview/ProblemWebview';
+import { DiscussionWebview } from './webview/DiscussionWebview';
 import { TestResultsPanel } from './webview/TestResultsPanel';
 import { ProblemDetails, ProblemMetaData, SubmissionCheckResult } from './leetcode/types';
 import { Logger, parseLogLevel } from './logger';
@@ -306,10 +307,65 @@ async function handleShowUser(
   }
 }
 
+export interface LayoutAction {
+  createWebviewColumn: vscode.ViewColumn | undefined;
+  showEditorColumn: vscode.ViewColumn | undefined;
+  moveEditorToRightGroup: boolean;
+}
+
+/**
+ * Determines the layout actions required to achieve a split view.
+ *
+ * @param isWebviewOpen Whether the problem webview is currently open anywhere
+ * @param visibleEditorColumn The view column of the visible editor, or undefined if none
+ */
+export function resolveLayoutActions(
+  isWebviewOpen: boolean,
+  visibleEditorColumn: vscode.ViewColumn | undefined,
+): LayoutAction {
+  if (isWebviewOpen && visibleEditorColumn === undefined) {
+    return {
+      createWebviewColumn: undefined,
+      showEditorColumn: undefined,
+      moveEditorToRightGroup: false,
+    };
+  }
+
+  if (isWebviewOpen && visibleEditorColumn !== undefined) {
+    return {
+      createWebviewColumn: undefined,
+      showEditorColumn: visibleEditorColumn,
+      moveEditorToRightGroup: false,
+    };
+  }
+
+  if (!isWebviewOpen && visibleEditorColumn !== undefined) {
+    if (visibleEditorColumn === vscode.ViewColumn.One) {
+      return {
+        createWebviewColumn: vscode.ViewColumn.One,
+        showEditorColumn: vscode.ViewColumn.One,
+        moveEditorToRightGroup: true,
+      };
+    } else {
+      return {
+        createWebviewColumn: vscode.ViewColumn.One,
+        showEditorColumn: visibleEditorColumn,
+        moveEditorToRightGroup: false,
+      };
+    }
+  }
+
+  return {
+    createWebviewColumn: vscode.ViewColumn.One,
+    showEditorColumn: vscode.ViewColumn.Two,
+    moveEditorToRightGroup: false,
+  };
+}
+
 /**
  * Handles opening a problem by generating local files and displaying description & code side-by-side.
  */
-async function handleOpenProblem(
+export async function handleOpenProblem(
   authManager: LeetCodeAuthManager,
   context: vscode.ExtensionContext,
   problemSlug: string,
@@ -516,21 +572,29 @@ async function handleOpenProblem(
   }
 
   // Check if a *visible* editor tab for this problem is already open.
-  // We use visibleTextEditors (actual on-screen tabs) instead of
-  // workspace.textDocuments (which includes closed/cached documents).
   const visibleProblemEditor = vscode.window.visibleTextEditors.find((e) => {
     const meta = readProblemMetadata(e.document.uri.fsPath);
     return meta !== null && meta.titleSlug === problemSlug;
   });
 
-  // Open Webview in Column One
-  ProblemWebview.createOrShow(context.extensionUri, details);
+  const isWebviewOpen = !!ProblemWebview.currentPanel;
+  const layout = resolveLayoutActions(isWebviewOpen, visibleProblemEditor?.viewColumn);
 
   if (visibleProblemEditor) {
-    // A tab for this problem is already visible — leave it untouched.
-    // Only the webview (problem statement) is refreshed above.
+    ProblemWebview.createOrShow(context.extensionUri, details, layout.createWebviewColumn);
+
+    if (layout.showEditorColumn !== undefined) {
+      await vscode.window.showTextDocument(visibleProblemEditor.document, layout.showEditorColumn);
+    }
+
+    if (layout.moveEditorToRightGroup) {
+      await vscode.commands.executeCommand('workbench.action.moveEditorToRightGroup');
+    }
     return;
   }
+
+  // Fallback: Editor is closed
+  ProblemWebview.createOrShow(context.extensionUri, details, layout.createWebviewColumn);
 
   // No visible editor for this problem — open the target language file.
   const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(codeFilePath));
@@ -550,7 +614,10 @@ async function handleOpenProblem(
       } catch {}
     }
   }
-  await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
+  await vscode.window.showTextDocument(doc, {
+    viewColumn: vscode.ViewColumn.Two,
+    preserveFocus: false,
+  });
 }
 
 /**
@@ -582,6 +649,18 @@ async function handleSearch(allProblemsProvider: AllProblemsTreeDataProvider): P
   if (selected) {
     void vscode.commands.executeCommand('better-leetcode.openProblem', selected.detail);
   }
+}
+
+/**
+ * Handles the show discussions command.
+ */
+async function handleShowDiscussions(
+  authManager: LeetCodeAuthManager,
+  context: vscode.ExtensionContext,
+  topicId: number,
+  title: string,
+): Promise<void> {
+  DiscussionWebview.createOrShow(context.extensionUri, authManager.getClient(), topicId, title);
 }
 
 /**
@@ -1326,6 +1405,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('better-leetcode.signout', () => handleSignOut(authManager)),
     vscode.commands.registerCommand('better-leetcode.showUser', () =>
       handleShowUser(authManager, context),
+    ),
+    vscode.commands.registerCommand(
+      'better-leetcode.showDiscussions',
+      (args?: { titleSlug?: string; topicId?: number; title?: string }) => {
+        if (!args || args.topicId === undefined || args.topicId === null || !args.title) {
+          Logger.getInstance().warn(
+            'extension',
+            'Cannot show discussions: topicId or title is missing',
+            { args },
+          );
+          void vscode.window.showWarningMessage(
+            'Cannot show discussions: Topic ID or title is missing.',
+          );
+          return;
+        }
+        // Defer instantiation to handleShowDiscussions to keep extension.ts clean
+        void handleShowDiscussions(authManager, context, args.topicId, args.title);
+      },
     ),
     vscode.commands.registerCommand('better-leetcode.openProblem', (problemSlug: string) => {
       void handleOpenProblem(authManager, context, problemSlug);
