@@ -57,6 +57,42 @@ export function parseCookies(cookieString: string): LeetCodeCookies | undefined 
 export class LeetCodeClient {
   private static readonly USER_AGENT =
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:151.0) Gecko/20100101 Firefox/151.0';
+
+  private static readonly DISCUSS_POST_FRAGMENT = `
+    fragment DiscussPost on PostNode {
+      id
+      voteCount
+      voteUpCount
+      voteStatus
+      content
+      updationDate
+      creationDate
+      status
+      isHidden
+      anonymous
+      author {
+        isDiscussAdmin
+        isDiscussStaff
+        username
+        nameColor
+        activeBadge {
+          displayName
+          icon
+        }
+        profile {
+          userAvatar
+          reputation
+          realName
+          certificationLevel
+        }
+        isActive
+      }
+      authorIsModerator
+      isOwnPost
+      isSerialized
+    }
+  `;
+
   private endpoint = 'https://leetcode.com';
   private cookies: LeetCodeCookies | undefined;
 
@@ -382,15 +418,15 @@ export class LeetCodeClient {
       }
     `;
     const variables = { titleSlug };
-    const data = await this.query<{ 
+    const data = await this.query<{
       question: ProblemDetails;
       questionDiscussionTopic?: { id: number };
     }>(queryStr, variables);
-    
+
     if (data.question && data.questionDiscussionTopic?.id) {
       data.question.topicId = data.questionDiscussionTopic.id;
     }
-    
+
     return data.question;
   }
 
@@ -828,43 +864,15 @@ export class LeetCodeClient {
         }
       }
       
-      fragment DiscussPost on PostNode {
-        id
-        voteCount
-        voteUpCount
-        voteStatus
-        content
-        updationDate
-        creationDate
-        status
-        isHidden
-        anonymous
-        author {
-          isDiscussAdmin
-          isDiscussStaff
-          username
-          nameColor
-          activeBadge {
-            displayName
-            icon
-          }
-          profile {
-            userAvatar
-            reputation
-            realName
-            certificationLevel
-          }
-          isActive
-        }
-        authorIsModerator
-        isOwnPost
-        isSerialized
-      }
+      ${LeetCodeClient.DISCUSS_POST_FRAGMENT}
     `;
 
     const variables = { topicId, pageNo, numPerPage, orderBy };
     try {
-      const data = await this.query<{ topicComments: import('./types').TopicCommentsResponse }>(queryStr, variables);
+      const data = await this.query<{ topicComments: import('./types').TopicCommentsResponse }>(
+        queryStr,
+        variables,
+      );
       return data?.topicComments;
     } catch (err) {
       Logger.getInstance().error('api', 'Failed to fetch discussion comments', err);
@@ -899,43 +907,14 @@ export class LeetCodeClient {
         }
       }
       
-      fragment DiscussPost on PostNode {
-        id
-        voteCount
-        voteUpCount
-        voteStatus
-        content
-        updationDate
-        creationDate
-        status
-        isHidden
-        anonymous
-        author {
-          isDiscussAdmin
-          isDiscussStaff
-          username
-          nameColor
-          activeBadge {
-            displayName
-            icon
-          }
-          profile {
-            userAvatar
-            reputation
-            realName
-            certificationLevel
-          }
-          isActive
-        }
-        authorIsModerator
-        isOwnPost
-        isSerialized
-      }
+      ${LeetCodeClient.DISCUSS_POST_FRAGMENT}
     `;
 
     const variables = { commentId, skip, first };
     try {
-      const data = await this.query<{ commentReplyConnection: import('./types').CommentReplyConnection }>(queryStr, variables);
+      const data = await this.query<{
+        commentReplyConnection: import('./types').CommentReplyConnection;
+      }>(queryStr, variables);
       return data?.commentReplyConnection;
     } catch (err) {
       Logger.getInstance().error('api', 'Failed to fetch comment replies', err);

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this 
 
 ### Added
 
+- Threaded discussion browsing using `DiscussionWebview` with paginated comment and reply fetching, reply pagination, navigation, and seamless UI integration.
 - Dropdown in the problem details panel to display problem hints line-by-line.
 - CSRF and session fixation protection for Web Authorization callback flow.
 

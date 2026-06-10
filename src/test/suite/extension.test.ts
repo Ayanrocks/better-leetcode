@@ -160,6 +160,13 @@ suite('Extension Test Suite', () => {
         assert.strictEqual(layout.showEditorColumn, vscode.ViewColumn.Two);
         assert.strictEqual(layout.moveEditorToRightGroup, false);
       });
+
+      test('when webview is open and editor is closed (undefined column), returns no actions for editor', () => {
+        const layout = resolveLayoutActions(true, undefined);
+        assert.strictEqual(layout.createWebviewColumn, undefined);
+        assert.strictEqual(layout.showEditorColumn, undefined);
+        assert.strictEqual(layout.moveEditorToRightGroup, false);
+      });
     });
   });
 

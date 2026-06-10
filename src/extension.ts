@@ -315,14 +315,22 @@ export interface LayoutAction {
 
 /**
  * Determines the layout actions required to achieve a split view.
- * 
+ *
  * @param isWebviewOpen Whether the problem webview is currently open anywhere
  * @param visibleEditorColumn The view column of the visible editor, or undefined if none
  */
 export function resolveLayoutActions(
   isWebviewOpen: boolean,
-  visibleEditorColumn: vscode.ViewColumn | undefined
+  visibleEditorColumn: vscode.ViewColumn | undefined,
 ): LayoutAction {
+  if (isWebviewOpen && visibleEditorColumn === undefined) {
+    return {
+      createWebviewColumn: undefined,
+      showEditorColumn: undefined,
+      moveEditorToRightGroup: false,
+    };
+  }
+
   if (isWebviewOpen && visibleEditorColumn !== undefined) {
     return {
       createWebviewColumn: undefined,
@@ -574,11 +582,11 @@ export async function handleOpenProblem(
 
   if (visibleProblemEditor) {
     ProblemWebview.createOrShow(context.extensionUri, details, layout.createWebviewColumn);
-    
+
     if (layout.showEditorColumn !== undefined) {
       await vscode.window.showTextDocument(visibleProblemEditor.document, layout.showEditorColumn);
     }
-    
+
     if (layout.moveEditorToRightGroup) {
       await vscode.commands.executeCommand('workbench.action.moveEditorToRightGroup');
     }
@@ -606,7 +614,10 @@ export async function handleOpenProblem(
       } catch {}
     }
   }
-  await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.Two, preserveFocus: false });
+  await vscode.window.showTextDocument(doc, {
+    viewColumn: vscode.ViewColumn.Two,
+    preserveFocus: false,
+  });
 }
 
 /**
@@ -647,7 +658,7 @@ async function handleShowDiscussions(
   authManager: LeetCodeAuthManager,
   context: vscode.ExtensionContext,
   topicId: number,
-  title: string
+  title: string,
 ): Promise<void> {
   DiscussionWebview.createOrShow(context.extensionUri, authManager.getClient(), topicId, title);
 }
@@ -1395,10 +1406,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('better-leetcode.showUser', () =>
       handleShowUser(authManager, context),
     ),
-    vscode.commands.registerCommand('better-leetcode.showDiscussions', (args: { titleSlug: string, topicId: number, title: string }) => {
-      // Defer instantiation to handleShowDiscussions to keep extension.ts clean
-      void handleShowDiscussions(authManager, context, args.topicId, args.title);
-    }),
+    vscode.commands.registerCommand(
+      'better-leetcode.showDiscussions',
+      (args?: { titleSlug?: string; topicId?: number; title?: string }) => {
+        if (!args || args.topicId === undefined || args.topicId === null || !args.title) {
+          Logger.getInstance().warn(
+            'extension',
+            'Cannot show discussions: topicId or title is missing',
+            { args },
+          );
+          void vscode.window.showWarningMessage(
+            'Cannot show discussions: Topic ID or title is missing.',
+          );
+          return;
+        }
+        // Defer instantiation to handleShowDiscussions to keep extension.ts clean
+        void handleShowDiscussions(authManager, context, args.topicId, args.title);
+      },
+    ),
     vscode.commands.registerCommand('better-leetcode.openProblem', (problemSlug: string) => {
       void handleOpenProblem(authManager, context, problemSlug);
     }),

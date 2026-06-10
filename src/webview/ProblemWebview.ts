@@ -2,20 +2,39 @@ import * as vscode from 'vscode';
 import { ProblemDetails } from '../leetcode/types';
 import { DiscussionWebview } from './DiscussionWebview';
 
+function escapeHtml(str: string): string {
+  return str.replace(/[&<>"']/g, (match) => {
+    switch (match) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      case "'":
+        return '&#39;';
+      default:
+        return match;
+    }
+  });
+}
+
 export class ProblemWebview {
   public static currentPanel: ProblemWebview | undefined;
   public static readonly viewType = 'problemWebview';
 
   public currentProblemSlug?: string;
-  public currentTopicId?: number;
+  public currentTopicId?: number | undefined;
 
   private readonly _panel: vscode.WebviewPanel;
   private _disposables: vscode.Disposable[] = [];
 
   public static createOrShow(
-    extensionUri: vscode.Uri, 
-    details: ProblemDetails, 
-    viewColumn?: vscode.ViewColumn
+    extensionUri: vscode.Uri,
+    details: ProblemDetails,
+    viewColumn?: vscode.ViewColumn,
   ): void {
     if (ProblemWebview.currentPanel) {
       ProblemWebview.currentPanel._panel.reveal(viewColumn);
@@ -23,7 +42,7 @@ export class ProblemWebview {
       return;
     }
 
-    const column = viewColumn || vscode.ViewColumn.One;
+    const column = viewColumn !== undefined ? viewColumn : vscode.ViewColumn.One;
 
     const panel = vscode.window.createWebviewPanel(
       ProblemWebview.viewType,
@@ -45,21 +64,26 @@ export class ProblemWebview {
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
     this._panel.webview.onDidReceiveMessage(
-      (message) => {
+      (message: { command?: string; topicId?: number; title?: string }) => {
         switch (message.command) {
           case 'showDiscussions':
-            if (this.currentProblemSlug) {
-              vscode.commands.executeCommand('better-leetcode.showDiscussions', {
+            if (
+              this.currentProblemSlug !== undefined &&
+              this.currentProblemSlug !== '' &&
+              typeof message.topicId === 'number' &&
+              !isNaN(message.topicId)
+            ) {
+              void vscode.commands.executeCommand('better-leetcode.showDiscussions', {
                 titleSlug: this.currentProblemSlug,
                 topicId: message.topicId,
-                title: message.title
+                title: message.title,
               });
             }
             return;
         }
       },
       null,
-      this._disposables
+      this._disposables,
     );
   }
 
@@ -72,7 +96,7 @@ export class ProblemWebview {
         x.dispose();
       }
     }
-    
+
     // Close associated discussion panel when the problem is closed
     if (this.currentTopicId !== undefined) {
       DiscussionWebview.closeByTopicId(this.currentTopicId);
@@ -81,8 +105,10 @@ export class ProblemWebview {
 
   public update(details: ProblemDetails): void {
     this.currentProblemSlug = details.titleSlug;
-    if (details.topicId !== undefined) {
+    if (details.topicId !== undefined && details.topicId !== null) {
       this.currentTopicId = details.topicId;
+    } else {
+      this.currentTopicId = undefined;
     }
     this._panel.title = `${details.questionFrontendId}. ${details.title}`;
     this._panel.webview.html = this._getHtmlForWebview(details);
@@ -271,7 +297,7 @@ export class ProblemWebview {
           : ''
       }
       ${
-        details.topicId
+        details.topicId !== undefined && details.topicId !== null
           ? `
         <button id="discussions-btn" class="tags-toggle-btn" style="background: rgba(88, 166, 255, 0.15); color: rgb(88, 166, 255); border-color: rgba(88, 166, 255, 0.3);">
           <span>Show Discussions</span>
@@ -300,7 +326,7 @@ export class ProblemWebview {
         ? `
       <div id="hints-container" class="tags-container">
         <div class="hints-list">
-          ${details.hints.map((hint, index) => `<div class="hint-item"><strong>Hint ${index + 1}:</strong> <span>${hint}</span></div>`).join('')}
+          ${details.hints.map((hint, index) => `<div class="hint-item"><strong>Hint ${index + 1}:</strong> <span>${escapeHtml(hint)}</span></div>`).join('')}
         </div>
       </div>
     `
@@ -336,7 +362,7 @@ export class ProblemWebview {
           discussionsBtn.addEventListener('click', () => {
             vscode.postMessage({
               command: 'showDiscussions',
-              topicId: ${details.topicId || null},
+              topicId: ${details.topicId},
               title: ${JSON.stringify(details.title)}
             });
           });

@@ -4,7 +4,8 @@ import { TextRenderer } from '../../utils/textRenderer';
 suite('TextRenderer Test Suite', () => {
   test('Should handle null or empty content', () => {
     assert.strictEqual(TextRenderer.render(''), '');
-    assert.strictEqual(TextRenderer.render(null as any), '');
+    assert.strictEqual(TextRenderer.render(null), '');
+    assert.strictEqual(TextRenderer.render(undefined), '');
   });
 
   test('Should unescape unicode characters (e.g. emojis)', () => {
@@ -20,7 +21,7 @@ suite('TextRenderer Test Suite', () => {
   test('Should unescape newlines', () => {
     const text = 'Line 1\\nLine 2';
     assert.strictEqual(TextRenderer.render(text), 'Line 1<br/>Line 2');
-    
+
     // Multiple new lines
     const multi = 'A\\n\\nB';
     assert.strictEqual(TextRenderer.render(multi), 'A<br/><br/>B');
@@ -38,10 +39,10 @@ suite('TextRenderer Test Suite', () => {
 
   test('Should unescape quotes', () => {
     const text = '\\"Hello\\"';
-    assert.strictEqual(TextRenderer.render(text), '"Hello"');
-    
+    assert.strictEqual(TextRenderer.render(text), '&quot;Hello&quot;');
+
     const single = "\\'Hello\\'";
-    assert.strictEqual(TextRenderer.render(single), "'Hello'");
+    assert.strictEqual(TextRenderer.render(single), '&#39;Hello&#39;');
   });
 
   test('Should unescape double slashes', () => {
@@ -50,8 +51,10 @@ suite('TextRenderer Test Suite', () => {
   });
 
   test('Should handle complex real-world string', () => {
-    const complex = 'This is absolutely weird Question i have ever seen. \\n\\nThe problem statement create the hype like i phone 17 and the solution is Nokia. \\uD83D\\uDE02';
-    const expected = 'This is absolutely weird Question i have ever seen. <br/><br/>The problem statement create the hype like i phone 17 and the solution is Nokia. 😂';
+    const complex =
+      'This is absolutely weird Question i have ever seen. \\n\\nThe problem statement create the hype like i phone 17 and the solution is Nokia. \\uD83D\\uDE02';
+    const expected =
+      'This is absolutely weird Question i have ever seen. <br/><br/>The problem statement create the hype like i phone 17 and the solution is Nokia. 😂';
     assert.strictEqual(TextRenderer.render(complex), expected);
   });
 });

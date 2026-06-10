@@ -16,7 +16,7 @@ export class DiscussionWebview {
     extensionUri: vscode.Uri,
     client: LeetCodeClient,
     topicId: number,
-    title: string
+    title: string,
   ): Promise<void> {
     if (DiscussionWebview.currentPanels.has(topicId)) {
       const existing = DiscussionWebview.currentPanels.get(topicId)!;
@@ -35,7 +35,7 @@ export class DiscussionWebview {
         enableScripts: true,
         localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'resources')],
         retainContextWhenHidden: true,
-      }
+      },
     );
 
     const discussionWebview = new DiscussionWebview(panel, client, topicId);
@@ -49,31 +49,37 @@ export class DiscussionWebview {
     }
   }
 
-  private constructor(
-    panel: vscode.WebviewPanel,
-    client: LeetCodeClient,
-    topicId: number
-  ) {
+  private constructor(panel: vscode.WebviewPanel, client: LeetCodeClient, topicId: number) {
     this._panel = panel;
     this._client = client;
     this._topicId = topicId;
 
-    this._update();
+    void this._update();
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
     this._panel.webview.onDidReceiveMessage(
-      async (message) => {
+      async (message: {
+        command?: string;
+        page?: unknown;
+        orderBy?: unknown;
+        commentId?: unknown;
+        skip?: unknown;
+      }) => {
         switch (message.command) {
           case 'loadPage':
-            await this._loadPage(message.page, message.orderBy);
+            if (typeof message.page === 'number' && typeof message.orderBy === 'string') {
+              await this._loadPage(message.page, message.orderBy);
+            }
             return;
           case 'loadReplies':
-            await this._loadReplies(message.commentId, message.skip);
+            if (typeof message.commentId === 'string' && typeof message.skip === 'number') {
+              await this._loadReplies(message.commentId, message.skip);
+            }
             return;
         }
       },
       null,
-      this._disposables
+      this._disposables,
     );
   }
 
@@ -96,17 +102,22 @@ export class DiscussionWebview {
   private async _loadPage(page: number, orderBy: string = 'most_votes'): Promise<void> {
     try {
       const data = await this._client.getDiscussionComments(this._topicId, page, 15, orderBy);
-      if (data && data.data) {
-        data.data.forEach(node => {
-          if (node.post && node.post.content) {
-            node.post.content = TextRenderer.render(node.post.content);
-          }
-        });
-        this._panel.webview.postMessage({
+      if (data !== undefined) {
+        const mappedData = {
+          ...data,
+          data: data.data.map((node) => ({
+            ...node,
+            post: {
+              ...node.post,
+              content: TextRenderer.render(node.post.content),
+            },
+          })),
+        };
+        void this._panel.webview.postMessage({
           command: 'renderPage',
-          data: data,
+          data: mappedData,
           page: page,
-          orderBy: orderBy
+          orderBy: orderBy,
         });
       }
     } catch (err) {
@@ -117,17 +128,25 @@ export class DiscussionWebview {
   private async _loadReplies(commentId: string, skip: number): Promise<void> {
     try {
       const data = await this._client.getCommentReplies(commentId, skip, 10);
-      if (data && data.edges) {
-        data.edges.forEach(edge => {
-          if (edge.node.post && edge.node.post.content) {
-            edge.node.post.content = TextRenderer.render(edge.node.post.content);
-          }
-        });
-        this._panel.webview.postMessage({
+      if (data !== undefined) {
+        const newData = {
+          ...data,
+          edges: data.edges.map((edge) => ({
+            ...edge,
+            node: {
+              ...edge.node,
+              post: {
+                ...edge.node.post,
+                content: TextRenderer.render(edge.node.post.content),
+              },
+            },
+          })),
+        };
+        void this._panel.webview.postMessage({
           command: 'renderReplies',
           commentId: commentId,
-          data: data,
-          skip: skip
+          data: newData,
+          skip: skip,
         });
       }
     } catch (err) {

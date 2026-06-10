@@ -18,8 +18,9 @@
 Better LeetCode brings the full LeetCode experience directly into your IDE with native support and no annoying boilerplate code.
 
 - **Web Authorization Login**: Authenticate securely using LeetCode's official authorize-login flow directly via your browser with built-in CSRF protection.
-- **Direct SQL Support**: First-class support for database problems with customized SQL language configurations (MySQL, MS SQL, Oracle SQL, PostgreSQL).
+- **Direct SQL Support**: First-class support for database problems with customized SQL configurations (MySQL, MS SQL, Oracle SQL, PostgreSQL).
 - **Problem Hints**: Toggle and view hints line-by-line directly in the problem description view.
+- **Discussion Browsing**: Browse problem discussions with paginated comments, threaded replies, and a dedicated discussion webview panel.
 - **Flexible Submission**: Submit solutions against default test cases or hidden test cases effortlessly.
 - **Language Switch on the Fly**: Change your target programming language seamlessly from the editor.
 - **Interactive Configurations**: Easily change your default language or database language on the fly.

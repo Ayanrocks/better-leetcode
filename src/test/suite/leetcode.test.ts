@@ -362,11 +362,11 @@ suite('LeetCode Module Test Suite', () => {
                 creationDate: 1234567890,
                 content: 'Great solution!',
                 voteUpCount: 10,
-                author: { username: 'testuser', profile: { userAvatar: 'avatarUrl' } }
-              }
-            }
-          ]
-        }
+                author: { username: 'testuser', profile: { userAvatar: 'avatarUrl' } },
+              },
+            },
+          ],
+        },
       };
 
       fetchMock = (_url, init) => {
@@ -396,12 +396,12 @@ suite('LeetCode Module Test Suite', () => {
                   creationDate: 1234567890,
                   content: 'I agree',
                   voteUpCount: 5,
-                  author: { username: 'replyuser', profile: { userAvatar: 'avatarUrl' } }
-                }
-              }
-            }
-          ]
-        }
+                  author: { username: 'replyuser', profile: { userAvatar: 'avatarUrl' } },
+                },
+              },
+            },
+          ],
+        },
       };
 
       fetchMock = (_url, init) => {
