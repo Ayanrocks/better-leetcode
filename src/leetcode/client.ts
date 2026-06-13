@@ -880,16 +880,19 @@ export class LeetCodeClient {
       questions: (contestData.questions !== undefined && contestData.questions !== null
         ? contestData.questions
         : []
-      ).map((q) => ({
-        question_id:
+      ).map((q) => {
+        const parsed =
           q.questionId !== undefined && q.questionId !== null && q.questionId !== ''
             ? parseInt(q.questionId, 10)
-            : 0,
-        credit: q.credit !== undefined && q.credit !== null ? q.credit : 0,
-        difficulty: 0, // Fallback since the query doesn't fetch it
-        title: q.title !== undefined && q.title !== null ? q.title : '',
-        title_slug: q.titleSlug !== undefined && q.titleSlug !== null ? q.titleSlug : '',
-      })),
+            : 0;
+        return {
+          question_id: !Number.isNaN(parsed) ? parsed : 0,
+          credit: q.credit !== undefined && q.credit !== null ? q.credit : 0,
+          difficulty: 0, // Fallback since the query doesn't fetch it
+          title: q.title !== undefined && q.title !== null ? q.title : '',
+          title_slug: q.titleSlug !== undefined && q.titleSlug !== null ? q.titleSlug : '',
+        };
+      }),
     };
   }
 

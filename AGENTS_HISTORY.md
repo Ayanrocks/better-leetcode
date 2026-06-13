@@ -153,7 +153,8 @@
 3. Upgraded KaTeX CDN stylesheet links from `v0.16.8` to `v0.17.0` in `src/webview/DiscussionWebview.ts` and `src/webview/ProblemWebview.ts` to align with the package version in `package.json`.
 4. Refactored the premium-access check in `src/extension.ts` to fail closed using the strict `status?.isPremium === true` requirement.
 5. Added status bar color assertions (`item.color === 'white'`) in `src/test/suite/statusBar.test.ts`.
-6. Verified that all formatting, linting, and 92 unit tests pass successfully.
+6. Hardened questionId parsing in `src/leetcode/client.ts` to guard against NaN results.
+7. Verified that all formatting, linting, and 92 unit tests pass successfully.
 
 ### Files modified
 
@@ -163,3 +164,4 @@
 - `src/webview/ProblemWebview.ts`
 - `src/extension.ts`
 - `src/test/suite/statusBar.test.ts`
+- `src/leetcode/client.ts`
