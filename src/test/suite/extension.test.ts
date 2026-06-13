@@ -10,6 +10,7 @@ import {
   EXT_TO_LANG_MAP,
   resolveLayoutActions,
 } from '../../extension';
+import { SubmissionCheckResult } from '../../leetcode/types';
 
 suite('Extension Test Suite', () => {
   test('Sample test to verify Mocha setup', () => {
@@ -69,7 +70,7 @@ suite('Extension Test Suite', () => {
     });
 
     test('normalizeResult provides safe defaults', () => {
-      const raw: any = { state: 'PENDING' };
+      const raw = { state: 'PENDING' } as unknown as SubmissionCheckResult;
       const normalized = normalizeResult(raw);
 
       assert.strictEqual(normalized.state, 'PENDING');
@@ -83,21 +84,21 @@ suite('Extension Test Suite', () => {
     });
 
     test('normalizeResult uses expected_code_answer when expected_answer is empty', () => {
-      const raw: any = {
+      const raw = {
         state: 'SUCCESS',
         expected_answer: [],
         expected_code_answer: ['a', 'b'],
-      };
+      } as unknown as SubmissionCheckResult;
       const normalized = normalizeResult(raw);
       assert.deepStrictEqual(normalized.expected_answer, ['a', 'b']);
     });
 
     test('normalizeResult uses expected_answer when it is not empty', () => {
-      const raw: any = {
+      const raw = {
         state: 'SUCCESS',
         expected_answer: ['1'],
         expected_code_answer: ['a', 'b'],
-      };
+      } as unknown as SubmissionCheckResult;
       const normalized = normalizeResult(raw);
       assert.deepStrictEqual(normalized.expected_answer, ['1']);
     });

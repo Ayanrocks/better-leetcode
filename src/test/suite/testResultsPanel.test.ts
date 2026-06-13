@@ -2,12 +2,32 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { TestResultsPanel, TestResultDisplayData } from '../../webview/TestResultsPanel';
 
+interface CaseData {
+  input: string;
+  output: string;
+  expected: string;
+  stdout: string;
+  passed: boolean;
+  hasOutput: boolean;
+  hasExpected: boolean;
+}
+
+interface TestResultsPanelPrivateAccess {
+  buildCases(data: TestResultDisplayData): CaseData[];
+  getTotalCases(data: TestResultDisplayData, cases: CaseData[]): number;
+  getTotalCorrect(data: TestResultDisplayData, cases: CaseData[]): number;
+  getStatusColor(statusCode: number): string;
+  escapeHtml(str: string): string;
+}
+
 suite('TestResultsPanel Test Suite', () => {
-  let panel: any;
+  let panel: TestResultsPanelPrivateAccess;
 
   setup(() => {
-    // Create a panel instance with a dummy URI
-    panel = new TestResultsPanel(vscode.Uri.file('/tmp/dummy'));
+    // Create a panel instance with a dummy URI and cast to private access interface
+    panel = new TestResultsPanel(
+      vscode.Uri.file('/tmp/dummy'),
+    ) as unknown as TestResultsPanelPrivateAccess;
   });
 
   suite('buildCases', () => {
@@ -42,14 +62,14 @@ suite('TestResultsPanel Test Suite', () => {
 
       const cases = panel.buildCases(data);
       assert.strictEqual(cases.length, 2);
-      assert.strictEqual(cases[0].input, '1');
-      assert.strictEqual(cases[0].output, 'out1');
-      assert.strictEqual(cases[0].expected, 'exp1');
-      assert.strictEqual(cases[0].stdout, 'std1');
-      assert.strictEqual(cases[0].passed, false); // out1 !== exp1
+      assert.strictEqual(cases[0]!.input, '1');
+      assert.strictEqual(cases[0]!.output, 'out1');
+      assert.strictEqual(cases[0]!.expected, 'exp1');
+      assert.strictEqual(cases[0]!.stdout, 'std1');
+      assert.strictEqual(cases[0]!.passed, false); // out1 !== exp1
 
-      assert.strictEqual(cases[1].input, '2');
-      assert.strictEqual(cases[1].stdout, '');
+      assert.strictEqual(cases[1]!.input, '2');
+      assert.strictEqual(cases[1]!.stdout, '');
     });
 
     test('submit flow: failed submission uses scalar fields', () => {
@@ -83,11 +103,11 @@ suite('TestResultsPanel Test Suite', () => {
 
       const cases = panel.buildCases(data);
       assert.strictEqual(cases.length, 1);
-      assert.strictEqual(cases[0].input, 'fail_in');
-      assert.strictEqual(cases[0].output, 'fail_out');
-      assert.strictEqual(cases[0].expected, 'fail_exp');
-      assert.strictEqual(cases[0].stdout, 'fail_std');
-      assert.strictEqual(cases[0].passed, false);
+      assert.strictEqual(cases[0]!.input, 'fail_in');
+      assert.strictEqual(cases[0]!.output, 'fail_out');
+      assert.strictEqual(cases[0]!.expected, 'fail_exp');
+      assert.strictEqual(cases[0]!.stdout, 'fail_std');
+      assert.strictEqual(cases[0]!.passed, false);
     });
 
     test('submit flow: successful submission returns empty array', () => {
@@ -126,8 +146,8 @@ suite('TestResultsPanel Test Suite', () => {
 
   suite('getTotalCases & getTotalCorrect', () => {
     test('test flow: counts from cases array', () => {
-      const data = { type: 'test', result: {} };
-      const cases = [{ passed: true }, { passed: false }];
+      const data = { type: 'test', result: {} } as unknown as TestResultDisplayData;
+      const cases = [{ passed: true }, { passed: false }] as unknown as CaseData[];
       assert.strictEqual(panel.getTotalCases(data, cases), 2);
       assert.strictEqual(panel.getTotalCorrect(data, cases), 1);
     });
@@ -136,8 +156,8 @@ suite('TestResultsPanel Test Suite', () => {
       const data = {
         type: 'submit',
         result: { total_testcases: 100, total_correct: 99 },
-      };
-      const cases = [{ passed: false }]; // Single failing case
+      } as unknown as TestResultDisplayData;
+      const cases = [{ passed: false }] as unknown as CaseData[]; // Single failing case
       assert.strictEqual(panel.getTotalCases(data, cases), 100);
       assert.strictEqual(panel.getTotalCorrect(data, cases), 99);
     });

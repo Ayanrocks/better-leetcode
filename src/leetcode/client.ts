@@ -423,7 +423,12 @@ export class LeetCodeClient {
       questionDiscussionTopic?: { id: number };
     }>(queryStr, variables);
 
-    if (data.question && data.questionDiscussionTopic?.id) {
+    if (
+      data.question !== undefined &&
+      data.question !== null &&
+      data.questionDiscussionTopic !== undefined &&
+      data.questionDiscussionTopic !== null
+    ) {
       data.question.topicId = data.questionDiscussionTopic.id;
     }
 
@@ -803,7 +808,12 @@ export class LeetCodeClient {
     }
     const data = await this.query<ContestInfoGraphQLResponse>(queryStr, { contestSlug });
 
-    if (!data || !data.contest) {
+    if (
+      data === undefined ||
+      data === null ||
+      data.contest === undefined ||
+      data.contest === null
+    ) {
       throw new Error(`Contest info request failed for ${contestSlug}`);
     }
 
@@ -812,18 +822,43 @@ export class LeetCodeClient {
     // Map GraphQL response to the expected ContestInfo structure
     return {
       contest: {
-        title: contestData.title || '',
-        title_slug: contestData.titleSlug || contestSlug,
-        description: contestData.description || '',
-        start_time: contestData.startTime || 0,
-        duration: contestData.duration || 0,
+        title:
+          contestData.title !== undefined && contestData.title !== null && contestData.title !== ''
+            ? contestData.title
+            : '',
+        title_slug:
+          contestData.titleSlug !== undefined &&
+          contestData.titleSlug !== null &&
+          contestData.titleSlug !== ''
+            ? contestData.titleSlug
+            : contestSlug,
+        description:
+          contestData.description !== undefined &&
+          contestData.description !== null &&
+          contestData.description !== ''
+            ? contestData.description
+            : '',
+        start_time:
+          contestData.startTime !== undefined && contestData.startTime !== null
+            ? contestData.startTime
+            : 0,
+        duration:
+          contestData.duration !== undefined && contestData.duration !== null
+            ? contestData.duration
+            : 0,
       },
-      questions: (contestData.questions || []).map((q) => ({
-        question_id: q.questionId ? parseInt(q.questionId, 10) : 0,
-        credit: q.credit || 0,
+      questions: (contestData.questions !== undefined && contestData.questions !== null
+        ? contestData.questions
+        : []
+      ).map((q) => ({
+        question_id:
+          q.questionId !== undefined && q.questionId !== null && q.questionId !== ''
+            ? parseInt(q.questionId, 10)
+            : 0,
+        credit: q.credit !== undefined && q.credit !== null ? q.credit : 0,
         difficulty: 0, // Fallback since the query doesn't fetch it
-        title: q.title || '',
-        title_slug: q.titleSlug || '',
+        title: q.title !== undefined && q.title !== null ? q.title : '',
+        title_slug: q.titleSlug !== undefined && q.titleSlug !== null ? q.titleSlug : '',
       })),
     };
   }

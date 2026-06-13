@@ -59,7 +59,8 @@ suite('TextRenderer Test Suite', () => {
   });
 
   test('Should render markdown bold, italic, links, images, and lists', () => {
-    const md = 'This is **bold** and *italic* and [link](https://leetcode.com) and ![img](https://leetcode.com/logo.png).\\n- Item 1\\n- Item 2';
+    const md =
+      'This is **bold** and *italic* and [link](https://leetcode.com) and ![img](https://leetcode.com/logo.png).\\n- Item 1\\n- Item 2';
     const expected =
       '<p>This is <strong>bold</strong> and <em>italic</em> and <a href="https://leetcode.com">link</a> and <img src="https://leetcode.com/logo.png" alt="img">.</p>\n' +
       '<ul>\n' +
@@ -70,7 +71,7 @@ suite('TextRenderer Test Suite', () => {
   });
 
   test('Should render markdown code blocks', () => {
-    const codeBlock = 'Here is a block:\\n\`\`\`javascript\\nconst a = 1;\\nconsole.log(a);\\n\`\`\`';
+    const codeBlock = 'Here is a block:\\n```javascript\\nconst a = 1;\\nconsole.log(a);\\n```';
     const expected =
       '<p>Here is a block:</p>\n' +
       '<pre><code class="language-javascript">const a = 1;\n' +
@@ -81,24 +82,30 @@ suite('TextRenderer Test Suite', () => {
 
   test('Should allow safe HTML tags and classes/styles', () => {
     const html = '<div class="custom-class" style="color: red;">Hello <strong>world</strong></div>';
-    const expected = '<div class="custom-class" style="color:red;">Hello <strong>world</strong></div>';
+    const expected =
+      '<div class="custom-class" style="color:red;">Hello <strong>world</strong></div>';
     assert.strictEqual(TextRenderer.render(html), expected);
   });
 
   test('Should sanitize malicious script tag', () => {
-    const malicious = 'Safe text <script>alert("XSS")</script> and safe <iframe src="https://leetcode.com/problem"></iframe>';
-    const expected = '<p>Safe text &lt;script&gt;alert("XSS")&lt;/script&gt; and safe <iframe src="https://leetcode.com/problem"></iframe></p>\n';
+    const malicious =
+      'Safe text <script>alert("XSS")</script> and safe <iframe src="https://leetcode.com/problem"></iframe>';
+    const expected =
+      '<p>Safe text &lt;script&gt;alert("XSS")&lt;/script&gt; and safe <iframe src="https://leetcode.com/problem"></iframe></p>\n';
     assert.strictEqual(TextRenderer.render(malicious), expected);
   });
 
   test('Should block dangerous iframe source but allow LeetCode iframe', () => {
-    const iframeCode = '<iframe src="https://malicious-site.com/steal-cookie"></iframe><iframe src="https://leetcode.com/solution-iframe"></iframe>';
-    const expected = '<iframe></iframe><iframe src="https://leetcode.com/solution-iframe"></iframe>';
+    const iframeCode =
+      '<iframe src="https://malicious-site.com/steal-cookie"></iframe><iframe src="https://leetcode.com/solution-iframe"></iframe>';
+    const expected =
+      '<iframe></iframe><iframe src="https://leetcode.com/solution-iframe"></iframe>';
     assert.strictEqual(TextRenderer.render(iframeCode), expected);
   });
 
   test('Should render LaTeX math blocks using KaTeX', () => {
-    const latexText = 'Using binomial sum: $\\binom{k}{1} + \\binom{k}{3} \\dots = 2^{k-1}$ and block math $$a < b$$';
+    const latexText =
+      'Using binomial sum: $\\binom{k}{1} + \\binom{k}{3} \\dots = 2^{k-1}$ and block math $$a < b$$';
     const result = TextRenderer.render(latexText);
     assert.ok(result.includes('class="katex"'), 'Should contain inline KaTeX rendering');
     assert.ok(result.includes('class="katex-display"'), 'Should contain block KaTeX rendering');

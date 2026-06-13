@@ -79,14 +79,14 @@ export class TextRenderer {
     let tempContent = decoded;
 
     // Extract block math $$...$$
-    tempContent = tempContent.replace(/\$\$([\s\S]+?)\$\$/g, (_match, p1) => {
+    tempContent = tempContent.replace(/\$\$([\s\S]+?)\$\$/g, (_match: string, p1: string) => {
       const placeholder = `MATHBLOCKPLACEHOLDER${mathBlocks.length}`;
       mathBlocks.push({ content: p1, displayMode: true });
       return placeholder;
     });
 
     // Extract inline math $...$
-    tempContent = tempContent.replace(/\$([^\n$]+?)\$/g, (_match, p1) => {
+    tempContent = tempContent.replace(/\$([^\n$]+?)\$/g, (_match: string, p1: string) => {
       const placeholder = `MATHBLOCKPLACEHOLDER${mathBlocks.length}`;
       mathBlocks.push({ content: p1, displayMode: false });
       return placeholder;

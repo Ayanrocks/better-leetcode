@@ -43,7 +43,7 @@ suite('BoilerplateManager Test Suite', () => {
     assert.strictEqual(config.suffix, '');
   });
 
-  test('wrapWithBoilerplate wraps correctly', function () {
+  test('wrapWithBoilerplate wraps correctly', function (this: Mocha.Context) {
     const snippet = 'function solution() {}';
     for (const lang of [...boilerplateLangs, ...noBoilerplateLangs]) {
       const wrapped = BoilerplateManager.wrapWithBoilerplate(lang, snippet);

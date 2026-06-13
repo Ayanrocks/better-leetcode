@@ -265,7 +265,12 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
           problemsetQuestionList: { total: number; questions: Problem[] };
         }>(queryStr, { categorySlug: '', skip: 0, limit: 1, filters: {} });
 
-        if (!firstData?.problemsetQuestionList) {
+        if (
+          firstData === null ||
+          firstData === undefined ||
+          firstData.problemsetQuestionList === undefined ||
+          firstData.problemsetQuestionList === null
+        ) {
           Logger.getInstance().error('tree', 'Failed to query API total during incremental update');
           this.problemsCache = existingQuestions;
           return;
@@ -300,7 +305,12 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
             const data = await client.query<{
               problemsetQuestionList: { total: number; questions: Problem[] };
             }>(queryStr, { categorySlug: '', skip, limit: batchSize, filters: {} });
-            if (!data?.problemsetQuestionList) {
+            if (
+              data === null ||
+              data === undefined ||
+              data.problemsetQuestionList === undefined ||
+              data.problemsetQuestionList === null
+            ) {
               return [];
             }
             return data.problemsetQuestionList.questions;
@@ -407,7 +417,7 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
         break;
     }
 
-    if (paidOnly) {
+    if (paidOnly === true) {
       return new vscode.ThemeIcon('lock', new vscode.ThemeColor(colorId));
     }
     return new vscode.ThemeIcon('tag', new vscode.ThemeColor(colorId));

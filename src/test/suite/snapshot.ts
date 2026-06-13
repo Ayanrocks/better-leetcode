@@ -11,7 +11,13 @@ export function matchSnapshot(
   actual: string,
   snapshotName: string,
 ): void {
-  if (!testContext || !testContext.test || !testContext.test.file) {
+  if (
+    !testContext ||
+    !testContext.test ||
+    testContext.test.file === undefined ||
+    testContext.test.file === null ||
+    testContext.test.file === ''
+  ) {
     throw new Error('matchSnapshot must be called within a Mocha test block with context.');
   }
 
@@ -26,7 +32,7 @@ export function matchSnapshot(
   let snapshots: Record<string, string> = {};
   if (fs.existsSync(snapFile)) {
     try {
-      snapshots = JSON.parse(fs.readFileSync(snapFile, 'utf-8'));
+      snapshots = JSON.parse(fs.readFileSync(snapFile, 'utf-8')) as Record<string, string>;
     } catch {
       // Ignore parse errors, just overwrite
     }
@@ -36,7 +42,10 @@ export function matchSnapshot(
   const key = `${testTitle} - ${snapshotName}`;
 
   // If running with UPDATE_SNAPSHOTS env var, or if snapshot doesn't exist, update it
-  if (process.env.UPDATE_SNAPSHOTS || !snapshots[key]) {
+  if (
+    (process.env.UPDATE_SNAPSHOTS !== undefined && process.env.UPDATE_SNAPSHOTS !== '') ||
+    snapshots[key] === undefined
+  ) {
     snapshots[key] = actual;
     fs.writeFileSync(snapFile, JSON.stringify(snapshots, null, 2), 'utf-8');
     return; // Pass

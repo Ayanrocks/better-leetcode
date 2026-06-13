@@ -119,7 +119,11 @@ export class ContestsTreeDataProvider implements vscode.TreeDataProvider<vscode.
         const contestSlug = element.contest.titleSlug;
         Logger.getInstance().debug('tree', `Fetching questions for contest: ${contestSlug}`);
         const contestInfo = await this.authManager.getClient().getContestInfo(contestSlug);
-        if (!contestInfo.questions || contestInfo.questions.length === 0) {
+        if (
+          contestInfo.questions === undefined ||
+          contestInfo.questions === null ||
+          contestInfo.questions.length === 0
+        ) {
           return [new vscode.TreeItem('No questions found', vscode.TreeItemCollapsibleState.None)];
         }
 

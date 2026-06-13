@@ -395,9 +395,12 @@ export async function handleOpenProblem(
     await config.update('storagePath', storagePath, vscode.ConfigurationTarget.Global);
   }
 
-  let defaultLanguage = preferredLang || config.get<string>('defaultLanguage');
-  let defaultDbLanguage = config.get<string>('defaultDbLanguage') || 'mysql';
-  if (defaultLanguage === undefined || defaultLanguage === '') {
+  let defaultLanguage =
+    preferredLang !== undefined && preferredLang !== ''
+      ? preferredLang
+      : (config.get<string>('defaultLanguage') ?? '');
+  const defaultDbLanguage = config.get<string>('defaultDbLanguage') ?? 'mysql';
+  if (defaultLanguage === '') {
     const languages = [
       { label: 'Python3', value: 'python3' },
       { label: 'Go', value: 'golang' },
@@ -444,9 +447,9 @@ export async function handleOpenProblem(
     return;
   }
 
-  if (details.paidOnly) {
+  if (details.paidOnly === true) {
     const status = authManager.getStatus();
-    if (!status?.isPremium) {
+    if (status === undefined || status === null || status.isPremium === false) {
       void vscode.window.showErrorMessage(
         `"${details.title}" is a premium problem. Please upgrade to LeetCode Premium to view it.`,
       );
@@ -563,9 +566,11 @@ export async function handleOpenProblem(
     // Upgrade old testcases.txt that only have the single sampleTestCase
     const existing = fs.readFileSync(testcasesPath, 'utf-8');
     if (
-      details.sampleTestCase &&
+      details.sampleTestCase !== undefined &&
+      details.sampleTestCase !== '' &&
       existing.trim() === details.sampleTestCase.trim() &&
-      details.exampleTestcases
+      details.exampleTestcases !== undefined &&
+      details.exampleTestcases !== ''
     ) {
       fs.writeFileSync(testcasesPath, details.exampleTestcases, 'utf-8');
     }
@@ -605,13 +610,15 @@ export async function handleOpenProblem(
       mssql: 'sql',
       oraclesql: 'oraclesql',
     };
-    const vscodeLangId = vscodeLangMap[targetLang] || 'sql';
+    const vscodeLangId = vscodeLangMap[targetLang] ?? 'sql';
     try {
       await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId);
     } catch {
       try {
         await vscode.languages.setTextDocumentLanguage(doc, 'sql');
-      } catch {}
+      } catch {
+        // Ignore errors if language mode cannot be set
+      }
     }
   }
   await vscode.window.showTextDocument(doc, {
@@ -660,7 +667,12 @@ async function handleShowDiscussions(
   topicId: number,
   title: string,
 ): Promise<void> {
-  DiscussionWebview.createOrShow(context.extensionUri, authManager.getClient(), topicId, title);
+  await DiscussionWebview.createOrShow(
+    context.extensionUri,
+    authManager.getClient(),
+    topicId,
+    title,
+  );
 }
 
 /**
@@ -901,9 +913,13 @@ export function normalizeResult(raw: SubmissionCheckResult): SubmissionCheckResu
     // 'expected_answer' for submissions. An empty array [] is not nullish,
     // so ?? alone won't fall through — check length explicitly.
     expected_answer:
-      raw.expected_answer && raw.expected_answer.length > 0
+      raw.expected_answer !== undefined &&
+      raw.expected_answer !== null &&
+      raw.expected_answer.length > 0
         ? raw.expected_answer
-        : (raw.expected_code_answer ?? []),
+        : raw.expected_code_answer !== undefined && raw.expected_code_answer !== null
+          ? raw.expected_code_answer
+          : [],
     code_output: raw.code_output ?? [],
     std_output_list: raw.std_output_list ?? [],
     compile_error: raw.compile_error ?? '',
@@ -1246,13 +1262,15 @@ async function handleChangeLanguage(
       mssql: 'sql',
       oraclesql: 'oraclesql',
     };
-    const vscodeLangId = vscodeLangMap[newLang] || 'sql';
+    const vscodeLangId = vscodeLangMap[newLang] !== undefined ? vscodeLangMap[newLang] : 'sql';
     try {
       await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId);
     } catch {
       try {
         await vscode.languages.setTextDocumentLanguage(doc, 'sql');
-      } catch {}
+      } catch {
+        // Ignore errors if language mode cannot be set
+      }
     }
   }
   await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
@@ -1409,7 +1427,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand(
       'better-leetcode.showDiscussions',
       (args?: { titleSlug?: string; topicId?: number; title?: string }) => {
-        if (!args || args.topicId === undefined || args.topicId === null || !args.title) {
+        if (
+          args === undefined ||
+          args === null ||
+          args.topicId === undefined ||
+          args.topicId === null ||
+          args.title === undefined ||
+          args.title === null ||
+          args.title === ''
+        ) {
           Logger.getInstance().warn(
             'extension',
             'Cannot show discussions: topicId or title is missing',
@@ -1436,7 +1462,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     }),
     vscode.commands.registerCommand('better-leetcode.openEditor', () => {
-      if (ProblemWebview.currentPanel?.currentProblemSlug) {
+      if (
+        ProblemWebview.currentPanel !== undefined &&
+        ProblemWebview.currentPanel !== null &&
+        ProblemWebview.currentPanel.currentProblemSlug !== undefined &&
+        ProblemWebview.currentPanel.currentProblemSlug !== ''
+      ) {
         void handleOpenProblem(
           authManager,
           context,
@@ -1545,7 +1576,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
       void handleOpenProblem(authManager, context, metadata.titleSlug, metadata.lang);
-    } else if (message.command === 'addTestCase' && message.input) {
+    } else if (
+      message.command === 'addTestCase' &&
+      message.input !== undefined &&
+      message.input !== null
+    ) {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
       const dir = path.dirname(editor.document.uri.fsPath);
@@ -1555,7 +1590,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         existing = fs.readFileSync(testcasesPath, 'utf-8');
       }
       const inputStr =
-        typeof message.input === 'string' ? message.input : String(message.input || '');
+        typeof message.input === 'string'
+          ? message.input
+          : String(message.input !== undefined && message.input !== null ? message.input : '');
       const existingLines = existing
         .split('\n')
         .map((l) => l.trim())

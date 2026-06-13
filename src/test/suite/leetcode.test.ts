@@ -190,14 +190,14 @@ suite('LeetCode Module Test Suite', () => {
 
       const details = await client.getProblemDetails('two-sum');
       assert.deepStrictEqual(details, mockDetails);
-      assert.ok(details.topicTags);
-      const tags = details.topicTags!;
+      assert.ok(details.topicTags !== undefined && details.topicTags !== null);
+      const tags = details.topicTags;
       assert.strictEqual(tags.length, 2);
       assert.strictEqual(tags[0]!.name, 'Array');
       assert.strictEqual(tags[1]!.name, 'Hash Table');
 
-      assert.ok(details.hints);
-      const hints = details.hints!;
+      assert.ok(details.hints !== undefined && details.hints !== null);
+      const hints = details.hints;
       assert.strictEqual(hints.length, 2);
       assert.strictEqual(hints[0], 'Hint 1');
       assert.strictEqual(hints[1], 'Hint 2');
@@ -231,7 +231,7 @@ suite('LeetCode Module Test Suite', () => {
       const contests = await client.getContests(5);
       assert.strictEqual(contests.length, 1);
       assert.ok(contests[0]);
-      assert.strictEqual(contests[0]!.titleSlug, 'weekly-contest-504');
+      assert.strictEqual(contests[0].titleSlug, 'weekly-contest-504');
     });
 
     test('Should fall back to contestV2PastContest query on getContests primary query failure', async () => {
@@ -267,7 +267,7 @@ suite('LeetCode Module Test Suite', () => {
       const contests = await client.getContests(5);
       assert.strictEqual(contests.length, 1);
       assert.ok(contests[0]);
-      assert.strictEqual(contests[0]!.titleSlug, 'weekly-contest-fallback');
+      assert.strictEqual(contests[0].titleSlug, 'weekly-contest-fallback');
       assert.strictEqual(callsCount, 2);
     });
 
@@ -275,7 +275,8 @@ suite('LeetCode Module Test Suite', () => {
       const client = new LeetCodeClient();
 
       fetchMock = (url, init) => {
-        const urlStr = typeof url === 'string' ? url : url.toString();
+        const urlStr =
+          typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
         assert.ok(urlStr.includes('/graphql/'));
         const bodyStr = init?.body as string;
         assert.ok(bodyStr.includes('contest'));
@@ -308,16 +309,17 @@ suite('LeetCode Module Test Suite', () => {
       assert.strictEqual(info.contest.title_slug, 'weekly-contest-504');
       assert.strictEqual(info.questions.length, 1);
       assert.ok(info.questions[0]);
-      assert.strictEqual(info.questions[0]!.title_slug, 'q1-slug');
-      assert.strictEqual(info.questions[0]!.question_id, 1001);
-      assert.strictEqual(info.questions[0]!.credit, 3);
+      assert.strictEqual(info.questions[0].title_slug, 'q1-slug');
+      assert.strictEqual(info.questions[0].question_id, 1001);
+      assert.strictEqual(info.questions[0].credit, 3);
     });
 
     test('Should handle REST interpretSolution request', async () => {
       const client = new LeetCodeClient();
       client.setCookieString('LEETCODE_SESSION=s; csrftoken=c;');
       fetchMock = (url, init) => {
-        const urlStr = typeof url === 'string' ? url : url.toString();
+        const urlStr =
+          typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
         assert.ok(urlStr.includes('/interpret_solution/'));
         assert.strictEqual(init?.method, 'POST');
         return Promise.resolve(createMockResponse({ interpret_id: 'test-interpret-id' }));

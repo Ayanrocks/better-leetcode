@@ -14,6 +14,7 @@
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "google",
     "prettier"
   ],
   "rules": {
@@ -34,7 +35,11 @@
       "error",
       "always"
     ],
-    "no-console": "warn"
+    "no-console": "warn",
+    "require-jsdoc": "off",
+    "valid-jsdoc": "off",
+    "no-invalid-this": "off",
+    "@typescript-eslint/no-invalid-this": "error"
   },
   "ignorePatterns": [
     "out",

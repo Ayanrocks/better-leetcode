@@ -99,7 +99,7 @@ export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<v
         break;
     }
 
-    if (paidOnly) {
+    if (paidOnly === true) {
       return new vscode.ThemeIcon('lock', new vscode.ThemeColor(colorId));
     }
     return new vscode.ThemeIcon('tag', new vscode.ThemeColor(colorId));

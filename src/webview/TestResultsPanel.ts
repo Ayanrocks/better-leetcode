@@ -66,7 +66,8 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   ): void {
     this.view = webviewView;
     webviewView.webview.options = { enableScripts: true };
-    webviewView.webview.html = this.pendingHtml || this.getEmptyHtml();
+    webviewView.webview.html =
+      this.pendingHtml !== undefined ? this.pendingHtml : this.getEmptyHtml();
     this.pendingHtml = undefined;
 
     webviewView.webview.onDidReceiveMessage((message: { command: string }) => {
