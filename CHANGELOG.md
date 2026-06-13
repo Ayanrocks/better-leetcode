@@ -4,6 +4,20 @@ All notable changes to the "better-leetcode" extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.1] - 2026-06-13
+
+### Added
+
+- GitHub Actions continuous integration pipeline (`ci.yml`) automating linting, formatting check, compiling, multi-OS tests, and extension packaging validation.
+- Enhanced markdown, HTML, and LaTeX rendering in problem statements and hints with secure HTML sanitization via `xss` and markdown parsing via `marked`.
+- High-visibility styling on the status bar (red background/alert indicators) when logged out to improve user awareness of authentication state.
+
+### Fixed
+
+- Over 117 ESLint and TypeScript compilation errors across the codebase.
+- Disabled overly strict JSDoc validation rules to improve development speed while maintaining code quality.
+- Fixed status bar controller test assertions.
+
 ## [1.3.0] - 2026-06-10
 
 ### Added
@@ -68,6 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this 
 - Native VS Code integration (syntax highlighting, IntelliSense, auto-complete).
 - Standard testing and solution submission against LeetCode engines.
 
+[1.3.1]: https://github.com/Ayanrocks/better-leetcode/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/Ayanrocks/better-leetcode/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/Ayanrocks/better-leetcode/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Ayanrocks/better-leetcode/compare/v1.0.2...v1.2.0

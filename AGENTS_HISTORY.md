@@ -1,5 +1,17 @@
 # AGENTS_HISTORY
 
+## 2026-06-13 — Bump Version to v1.3.1 and Update Changelog
+
+### What was done
+
+1. Bumped the extension version to `1.3.1` in `package.json`.
+2. Updated `CHANGELOG.md` to document the changes introduced since `1.3.0`, including the GitHub Actions CI pipeline, enhanced markdown/HTML rendering with XSS protection, high-visibility status bar logging alert, and ESLint/TypeScript compilation fixes.
+
+### Files modified
+
+- `package.json`
+- `CHANGELOG.md`
+
 ## 2026-06-13 — Add GitHub Actions CI Pipeline and Fix Codebase Linting/Testing Errors
 
 ### What was done
