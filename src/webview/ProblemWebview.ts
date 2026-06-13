@@ -1,25 +1,7 @@
 import * as vscode from 'vscode';
 import { ProblemDetails } from '../leetcode/types';
 import { DiscussionWebview } from './DiscussionWebview';
-
-function escapeHtml(str: string): string {
-  return str.replace(/[&<>"']/g, (match) => {
-    switch (match) {
-      case '&':
-        return '&amp;';
-      case '<':
-        return '&lt;';
-      case '>':
-        return '&gt;';
-      case '"':
-        return '&quot;';
-      case "'":
-        return '&#39;';
-      default:
-        return match;
-    }
-  });
-}
+import { TextRenderer } from '../utils/textRenderer';
 
 export class ProblemWebview {
   public static currentPanel: ProblemWebview | undefined;
@@ -123,6 +105,7 @@ export class ProblemWebview {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${details.title}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <style>
       body {
         font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
@@ -326,7 +309,7 @@ export class ProblemWebview {
         ? `
       <div id="hints-container" class="tags-container">
         <div class="hints-list">
-          ${details.hints.map((hint, index) => `<div class="hint-item"><strong>Hint ${index + 1}:</strong> <span>${escapeHtml(hint)}</span></div>`).join('')}
+          ${details.hints.map((hint, index) => `<div class="hint-item"><strong>Hint ${index + 1}:</strong> <span>${TextRenderer.render(hint)}</span></div>`).join('')}
         </div>
       </div>
     `

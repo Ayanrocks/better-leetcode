@@ -339,6 +339,7 @@
     "publish": "vsce publish"
   },
   "devDependencies": {
+    "@types/katex": "^0.16.8",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.12.7",
     "@types/vscode": "^1.90.0",
@@ -353,5 +354,10 @@
     "mocha": "^10.4.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "katex": "^0.17.0",
+    "marked": "^18.0.5",
+    "xss": "^1.0.15"
   }
 }
