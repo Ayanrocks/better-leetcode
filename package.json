@@ -325,6 +325,7 @@
       }
     }
   },
+  "packageManager": "bun@1.3.14",
   "scripts": {
     "vscode:prepublish": "bun run package",
     "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",

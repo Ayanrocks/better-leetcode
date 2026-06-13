@@ -455,7 +455,7 @@ export async function handleOpenProblem(
 
   if (details.paidOnly === true) {
     const status = authManager.getStatus();
-    if (status === undefined || status === null || status.isPremium === false) {
+    if (status?.isPremium !== true) {
       void vscode.window.showErrorMessage(
         `"${details.title}" is a premium problem. Please upgrade to LeetCode Premium to view it.`,
       );
