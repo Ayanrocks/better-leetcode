@@ -4,6 +4,35 @@ import { DiscussionWebview } from './DiscussionWebview';
 import { TextRenderer } from '../utils/textRenderer';
 
 /**
+ * Generates a random nonce string for use in Content Security Policy.
+ *
+ * @returns A 32-character alphanumeric nonce.
+ */
+function getNonce(): string {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+}
+
+/**
+ * Escapes a string for safe injection into an HTML context.
+ *
+ * @param unsafe The raw string to escape.
+ * @returns The HTML-escaped string.
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
  * Webview provider for displaying LeetCode problem details.
  */
 export class ProblemWebview {
@@ -14,6 +43,7 @@ export class ProblemWebview {
   public currentTopicId?: number | undefined;
 
   private readonly _panel: vscode.WebviewPanel;
+  private readonly _extensionUri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
 
   /**
@@ -46,7 +76,7 @@ export class ProblemWebview {
       },
     );
 
-    ProblemWebview.currentPanel = new ProblemWebview(panel);
+    ProblemWebview.currentPanel = new ProblemWebview(panel, extensionUri);
     ProblemWebview.currentPanel.update(details);
   }
 
@@ -54,9 +84,11 @@ export class ProblemWebview {
    * Creates an instance of ProblemWebview.
    *
    * @param panel The webview panel to manage.
+   * @param extensionUri The URI of the extension, used to resolve local resource paths.
    */
-  private constructor(panel: vscode.WebviewPanel) {
+  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel;
+    this._extensionUri = extensionUri;
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
@@ -115,26 +147,63 @@ export class ProblemWebview {
     } else {
       this.currentTopicId = undefined;
     }
-    this._panel.title = `${details.questionFrontendId}. ${details.title}`;
+    this._panel.title = `${details.questionFrontendId}. ${escapeHtml(details.title)}`;
     this._panel.webview.html = this._getHtmlForWebview(details);
   }
 
   /**
    * Generates the HTML content for the webview.
+   * All user-visible strings from the API are either escaped or sanitized
+   * via TextRenderer before injection into the HTML template.
    *
    * @param details The problem details used to render the HTML.
    * @returns The HTML string for the webview.
    */
   private _getHtmlForWebview(details: ProblemDetails): string {
-    const difficultyClass = details.difficulty.toLowerCase();
+    const nonce = getNonce();
+    const webview = this._panel.webview;
+    const cspSource = webview.cspSource;
+
+    // Resolve local KaTeX CSS via VS Code's webview URI scheme
+    const katexCssUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'resources', 'katex', 'katex.min.css'),
+    );
+
+    // Safely escape all API-sourced string values before template injection
+    const safeTitle = escapeHtml(details.title);
+    const safeDifficultyClass = escapeHtml(details.difficulty.toLowerCase());
+    const safeDifficulty = escapeHtml(details.difficulty);
+    const safeQuestionId = escapeHtml(String(details.questionFrontendId));
+
+    // Sanitize problem content: passes through marked (markdown) + xss filter
+    const safeContent = TextRenderer.render(details.content ?? '');
+
+    // Sanitize hints through the same pipeline
+    const safeHints = (details.hints ?? []).map((hint) => TextRenderer.render(hint));
+
+    // Escape topic tag names
+    const safeTopicTags = (details.topicTags ?? []).map((tag) => ({
+      name: escapeHtml(tag.name),
+    }));
+
+    // topicId is a number — safe to embed directly
+    const topicId = typeof details.topicId === 'number' ? details.topicId : null;
+    const safeTopicTitle = JSON.stringify(details.title);
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${details.title}</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.css">
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'none';
+      style-src ${cspSource} 'unsafe-inline';
+      font-src ${cspSource};
+      img-src ${cspSource} https: data:;
+      script-src 'nonce-${nonce}';
+    ">
+    <title>${safeTitle}</title>
+    <link rel="stylesheet" href="${katexCssUri.toString()}">
     <style>
       body {
         font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
@@ -281,11 +350,11 @@ export class ProblemWebview {
     </style>
 </head>
 <body>
-    <h1>${details.questionFrontendId}. ${details.title}</h1>
+    <h1>${safeQuestionId}. ${safeTitle}</h1>
     <div class="badges">
-      <span class="badge ${difficultyClass}">${details.difficulty}</span>
+      <span class="badge ${safeDifficultyClass}">${safeDifficulty}</span>
       ${
-        details.topicTags && details.topicTags.length > 0
+        safeTopicTags.length > 0
           ? `
         <button id="tags-toggle" class="tags-toggle-btn">
           <span>Show Tags</span>
@@ -297,7 +366,7 @@ export class ProblemWebview {
           : ''
       }
       ${
-        details.hints && details.hints.length > 0
+        safeHints.length > 0
           ? `
         <button id="hints-toggle" class="tags-toggle-btn">
           <span>Show Hints</span>
@@ -309,7 +378,7 @@ export class ProblemWebview {
           : ''
       }
       ${
-        details.topicId !== undefined && details.topicId !== null
+        topicId !== null
           ? `
         <button id="discussions-btn" class="tags-toggle-btn" style="background: rgba(88, 166, 255, 0.15); color: rgb(88, 166, 255); border-color: rgba(88, 166, 255, 0.3);">
           <span>Show Discussions</span>
@@ -323,32 +392,32 @@ export class ProblemWebview {
       }
     </div>
     ${
-      details.topicTags && details.topicTags.length > 0
+      safeTopicTags.length > 0
         ? `
       <div id="tags-container" class="tags-container">
         <div class="tags-list">
-          ${details.topicTags.map((tag) => `<span class="tag-badge">${tag.name}</span>`).join('')}
+          ${safeTopicTags.map((tag) => `<span class="tag-badge">${tag.name}</span>`).join('')}
         </div>
       </div>
     `
         : ''
     }
     ${
-      details.hints && details.hints.length > 0
+      safeHints.length > 0
         ? `
       <div id="hints-container" class="tags-container">
         <div class="hints-list">
-          ${details.hints.map((hint, index) => `<div class="hint-item"><strong>Hint ${index + 1}:</strong> <span>${TextRenderer.render(hint)}</span></div>`).join('')}
+          ${safeHints.map((hint, index) => `<div class="hint-item"><strong>Hint ${index + 1}:</strong> <span>${hint}</span></div>`).join('')}
         </div>
       </div>
     `
         : ''
     }
     <div class="content">
-      ${details.content}
+      ${safeContent}
     </div>
 
-    <script>
+    <script nonce="${nonce}">
       (function() {
         function setupToggle(btnId, containerId, showText, hideText) {
           const toggleBtn = document.getElementById(btnId);
@@ -374,8 +443,8 @@ export class ProblemWebview {
           discussionsBtn.addEventListener('click', () => {
             vscode.postMessage({
               command: 'showDiscussions',
-              topicId: ${details.topicId},
-              title: ${JSON.stringify(details.title)}
+              topicId: ${topicId},
+              title: ${safeTopicTitle}
             });
           });
         }

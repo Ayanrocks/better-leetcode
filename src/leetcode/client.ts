@@ -602,7 +602,7 @@ export class LeetCodeClient {
     typedCode: string,
     testCases: string,
   ): Promise<InterpretResponse> {
-    const url = `${this.endpoint}/problems/${titleSlug}/interpret_solution/`;
+    const url = `${this.endpoint}/problems/${encodeURIComponent(titleSlug)}/interpret_solution/`;
     const headers = this.buildRestHeaders();
 
     Logger.getInstance().debug('api', `Interpret request: ${titleSlug}`, { lang, questionId });
@@ -648,7 +648,7 @@ export class LeetCodeClient {
     lang: string,
     typedCode: string,
   ): Promise<SubmitResponse> {
-    const url = `${this.endpoint}/problems/${titleSlug}/submit/`;
+    const url = `${this.endpoint}/problems/${encodeURIComponent(titleSlug)}/submit/`;
     const headers = this.buildRestHeaders();
 
     Logger.getInstance().debug('api', `Submit request: ${titleSlug}`, { lang, questionId });
@@ -687,7 +687,7 @@ export class LeetCodeClient {
    * @throws Error if polling exceeds the maximum number of attempts.
    */
   public async checkSubmissionStatus(submissionId: string): Promise<SubmissionCheckResult> {
-    const url = `${this.endpoint}/submissions/detail/${submissionId}/check/`;
+    const url = `${this.endpoint}/submissions/detail/${encodeURIComponent(String(submissionId))}/check/`;
     const headers = this.buildRestHeaders();
     const maxAttempts = 30;
     const pollIntervalMs = 1500;

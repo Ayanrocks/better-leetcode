@@ -1,0 +1,35 @@
+# Source files (compiled to dist/extension.js)
+src/**
+out/**
+
+# Development tooling
+.vscode/**
+.vscode-test/**
+.github/**
+.eslintrc.json
+.prettierrc
+tsconfig.json
+tsconfig.test.json
+bun.lock
+node_modules/**
+
+# Version control
+.git/**
+.gitignore
+.gitattributes
+
+# OS metadata
+.DS_Store
+
+# Pre-built VSIX artifacts
+*.vsix
+
+# Agent notes
+AGENTS.md
+AGENTS_HISTORY.md
+
+# Large media assets not needed at runtime
+resources/Better-Leetcode-demo.gif
+resources/better-leetcode-ss.png
+resources/better-leetcode-logo.svg
+# NOTE: resources/katex/ is intentionally included — used at runtime for local KaTeX CSS

@@ -2,6 +2,20 @@ import * as vscode from 'vscode';
 import { SubmissionCheckResult } from '../leetcode/types';
 
 /**
+ * Generates a random nonce string for use in Content Security Policy.
+ *
+ * @returns A 32-character alphanumeric nonce.
+ */
+function getNonce(): string {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+}
+
+/**
  * Represents the processed result data sent to the webview for display.
  */
 export interface TestResultDisplayData {
@@ -124,11 +138,17 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    * @returns The empty state HTML string.
    */
   private getEmptyHtml(): string {
+    const nonce = getNonce();
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    style-src 'unsafe-inline';
+    script-src 'nonce-${nonce}';
+  ">
   <style>
     body {
       font-family: var(--vscode-font-family);
@@ -172,11 +192,17 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    */
   private getLoadingHtml(message: string): string {
     const safeMessage = this.escapeHtml(message);
+    const nonce = getNonce();
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    style-src 'unsafe-inline';
+    script-src 'nonce-${nonce}';
+  ">
   <style>
     body {
       font-family: var(--vscode-font-family);
@@ -275,12 +301,18 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     const statusIcon = isAccepted ? '✅' : '❌';
     const showStats = data.type === 'submit' && isAccepted;
     const hasCases = cases.length > 0;
+    const nonce = getNonce();
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    style-src 'unsafe-inline';
+    script-src 'nonce-${nonce}';
+  ">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -585,7 +617,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
     </div>
   </div>
 
-  <script>
+  <script nonce="${nonce}">
     (function() {
       var vscode = acquireVsCodeApi();
       var cases = ${casesJson};

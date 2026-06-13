@@ -4,6 +4,29 @@ All notable changes to the "better-leetcode" extension will be documented in thi
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.2] - 2026-06-14
+
+### Security
+
+- Added `.vscodeignore` to exclude source files, test output, and large media assets from the VSIX
+  package, reducing the package size from ~23 MB back to ~500 KB and resolving the
+  Microsoft Marketplace virus check failure.
+- Added Content Security Policy (CSP) meta tags with per-request nonces to all three webview
+  panels (`ProblemWebview`, `DiscussionWebview`, `TestResultsPanel`) as required by the
+  VS Code Marketplace for extensions using `enableScripts: true`.
+- Sanitized LeetCode problem statement HTML (`details.content`) through the `TextRenderer`
+  XSS filter before injection into `ProblemWebview` (previously rendered raw).
+- Escaped all API-sourced string values (`title`, `difficulty`, `tag.name`, `questionFrontendId`)
+  via `escapeHtml()` before HTML template injection.
+- Replaced `innerHTML` / inline `onclick` patterns in `DiscussionWebview` with safe DOM API
+  calls (`createElement`, `textContent`, `addEventListener`, `dataset`).
+- Validated avatar URLs in `DiscussionWebview` to allow only `https://` scheme before setting
+  `img.src`, preventing `javascript:` or `data:` URI injection.
+- URL-encoded `titleSlug` and `submissionId` using `encodeURIComponent()` in all REST API
+  path constructions in `LeetCodeClient`.
+- Bundled KaTeX CSS and fonts locally under `resources/katex/` instead of loading from
+  `cdn.jsdelivr.net`, eliminating the external CDN dependency in webviews.
+
 ## [1.3.1] - 2026-06-13
 
 ### Added
@@ -82,6 +105,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this 
 - Native VS Code integration (syntax highlighting, IntelliSense, auto-complete).
 - Standard testing and solution submission against LeetCode engines.
 
+[1.3.2]: https://github.com/Ayanrocks/better-leetcode/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/Ayanrocks/better-leetcode/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/Ayanrocks/better-leetcode/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/Ayanrocks/better-leetcode/compare/v1.2.0...v1.2.1
