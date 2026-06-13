@@ -2,7 +2,7 @@
   "name": "better-leetcode",
   "displayName": "Better Leetcode",
   "description": "A flexible and robust VS Code extension for solving Leetcode problems.",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "publisher": "ayanrocks",
   "repository": "https://github.com/Ayanrocks/better-leetcode",
   "sponsor": {
@@ -325,6 +325,7 @@
       }
     }
   },
+  "packageManager": "bun@1.3.14",
   "scripts": {
     "vscode:prepublish": "bun run package",
     "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
@@ -336,9 +337,11 @@
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
     "publish": "vsce publish"
   },
   "devDependencies": {
+    "@types/katex": "^0.16.8",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.12.7",
     "@types/vscode": "^1.90.0",
@@ -348,10 +351,16 @@
     "@vscode/vsce": "^3.9.1",
     "esbuild": "^0.20.2",
     "eslint": "^8.57.0",
+    "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
     "mocha": "^10.4.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "katex": "^0.17.0",
+    "marked": "^18.0.5",
+    "xss": "^1.0.15"
   }
 }

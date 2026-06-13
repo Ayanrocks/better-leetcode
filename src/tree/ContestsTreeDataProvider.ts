@@ -4,7 +4,15 @@ import { LeetCodeContest, ContestQuestion } from '../leetcode';
 import { AllProblemsTreeDataProvider } from './AllProblemsTreeDataProvider';
 import { Logger } from '../logger';
 
+/**
+ * Represents a contest item in the VS Code Tree View.
+ */
 class ContestItem extends vscode.TreeItem {
+  /**
+   * Creates an instance of ContestItem.
+   *
+   * @param contest The LeetCode contest object.
+   */
   constructor(public readonly contest: LeetCodeContest) {
     super(contest.title, vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'contest';
@@ -15,7 +23,17 @@ class ContestItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * Represents a problem/question within a contest in the VS Code Tree View.
+ */
 class ContestProblemItem extends vscode.TreeItem {
+  /**
+   * Creates an instance of ContestProblemItem.
+   *
+   * @param question The contest question details.
+   * @param index The 0-based index of the question in the contest.
+   * @param status The completion status of the question (e.g., 'ac').
+   */
   constructor(
     public readonly question: ContestQuestion,
     public readonly index: number,
@@ -33,6 +51,12 @@ class ContestProblemItem extends vscode.TreeItem {
     };
   }
 
+  /**
+   * Gets the difficulty label as a string for a given difficulty representation.
+   *
+   * @param diff The difficulty numeric value or string representation.
+   * @returns The difficulty level ('Easy', 'Medium', or 'Hard').
+   */
   private static getDifficultyLabel(diff: number | string): 'Easy' | 'Medium' | 'Hard' {
     if (typeof diff === 'number') {
       if (diff === 1) return 'Easy';
@@ -47,6 +71,13 @@ class ContestProblemItem extends vscode.TreeItem {
     return 'Medium';
   }
 
+  /**
+   * Gets the appropriate theme icon for a problem based on difficulty and status.
+   *
+   * @param difficulty The difficulty label.
+   * @param status The status of the problem (e.g., 'ac').
+   * @returns The VS Code theme icon representing the difficulty and completion status.
+   */
   private static getDifficultyIcon(
     difficulty: 'Easy' | 'Medium' | 'Hard',
     status?: string | null,
@@ -75,25 +106,49 @@ class ContestProblemItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * Tree data provider for LeetCode contests and their questions.
+ */
 export class ContestsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> =
     new vscode.EventEmitter<vscode.TreeItem | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | null | void> =
     this._onDidChangeTreeData.event;
 
+  /**
+   * Creates an instance of ContestsTreeDataProvider.
+   *
+   * @param authManager The LeetCode authentication manager.
+   * @param allProblemsProvider The data provider for all problems.
+   */
   constructor(
     private authManager: LeetCodeAuthManager,
     private allProblemsProvider: AllProblemsTreeDataProvider,
   ) {}
 
+  /**
+   * Refreshes the contests tree view.
+   */
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
 
+  /**
+   * Returns the tree item for the specified element.
+   *
+   * @param element The tree item element.
+   * @returns The tree item representation.
+   */
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
 
+  /**
+   * Retrieves the children elements of the tree view.
+   *
+   * @param element The optional parent tree item element.
+   * @returns A promise resolving to an array of children tree items.
+   */
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (!element) {
       try {
@@ -119,7 +174,11 @@ export class ContestsTreeDataProvider implements vscode.TreeDataProvider<vscode.
         const contestSlug = element.contest.titleSlug;
         Logger.getInstance().debug('tree', `Fetching questions for contest: ${contestSlug}`);
         const contestInfo = await this.authManager.getClient().getContestInfo(contestSlug);
-        if (!contestInfo.questions || contestInfo.questions.length === 0) {
+        if (
+          contestInfo.questions === undefined ||
+          contestInfo.questions === null ||
+          contestInfo.questions.length === 0
+        ) {
           return [new vscode.TreeItem('No questions found', vscode.TreeItemCollapsibleState.None)];
         }
 

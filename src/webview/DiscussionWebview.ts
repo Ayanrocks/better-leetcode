@@ -3,6 +3,9 @@ import { LeetCodeClient } from '../leetcode/client';
 import { Logger } from '../logger';
 import { TextRenderer } from '../utils/textRenderer';
 
+/**
+ * Webview panel for displaying and interacting with LeetCode discussion topics.
+ */
 export class DiscussionWebview {
   public static currentPanels: Map<number, DiscussionWebview> = new Map();
   public static readonly viewType = 'discussionWebview';
@@ -12,6 +15,15 @@ export class DiscussionWebview {
   private readonly _topicId: number;
   private _disposables: vscode.Disposable[] = [];
 
+  /**
+   * Creates or shows a discussion webview panel for a given topic.
+   *
+   * @param extensionUri The extension's URI.
+   * @param client The LeetCode client.
+   * @param topicId The ID of the discussion topic.
+   * @param title The title of the discussion.
+   * @returns A promise that resolves when the panel is created or shown.
+   */
   public static async createOrShow(
     extensionUri: vscode.Uri,
     client: LeetCodeClient,
@@ -42,6 +54,11 @@ export class DiscussionWebview {
     DiscussionWebview.currentPanels.set(topicId, discussionWebview);
   }
 
+  /**
+   * Closes the discussion panel for the specified topic ID if it is open.
+   *
+   * @param topicId The ID of the topic.
+   */
   public static closeByTopicId(topicId: number): void {
     if (DiscussionWebview.currentPanels.has(topicId)) {
       const existing = DiscussionWebview.currentPanels.get(topicId)!;
@@ -49,6 +66,13 @@ export class DiscussionWebview {
     }
   }
 
+  /**
+   * Creates an instance of DiscussionWebview.
+   *
+   * @param panel The webview panel.
+   * @param client The LeetCode client.
+   * @param topicId The ID of the discussion topic.
+   */
   private constructor(panel: vscode.WebviewPanel, client: LeetCodeClient, topicId: number) {
     this._panel = panel;
     this._client = client;
@@ -83,6 +107,9 @@ export class DiscussionWebview {
     );
   }
 
+  /**
+   * Disposes the webview panel and cleans up associated resources.
+   */
   public dispose(): void {
     DiscussionWebview.currentPanels.delete(this._topicId);
     this._panel.dispose();
@@ -94,11 +121,23 @@ export class DiscussionWebview {
     }
   }
 
+  /**
+   * Updates the webview content with the HTML and loads the initial comments.
+   *
+   * @returns A promise that resolves when the update is complete.
+   */
   private async _update(): Promise<void> {
     this._panel.webview.html = this._getHtmlForWebview();
     await this._loadPage(1, 'most_votes');
   }
 
+  /**
+   * Loads a specific page of comments for the discussion topic.
+   *
+   * @param page The page number to load.
+   * @param orderBy The order of comments.
+   * @returns A promise that resolves when the page is loaded.
+   */
   private async _loadPage(page: number, orderBy: string = 'most_votes'): Promise<void> {
     try {
       const data = await this._client.getDiscussionComments(this._topicId, page, 15, orderBy);
@@ -125,6 +164,13 @@ export class DiscussionWebview {
     }
   }
 
+  /**
+   * Loads replies for a specific comment.
+   *
+   * @param commentId The ID of the comment.
+   * @param skip The number of replies to skip (offset).
+   * @returns A promise that resolves when the replies are loaded.
+   */
   private async _loadReplies(commentId: string, skip: number): Promise<void> {
     try {
       const data = await this._client.getCommentReplies(commentId, skip, 10);
@@ -154,6 +200,11 @@ export class DiscussionWebview {
     }
   }
 
+  /**
+   * Generates the HTML content for the webview.
+   *
+   * @returns The HTML string.
+   */
   private _getHtmlForWebview(): string {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -161,6 +212,7 @@ export class DiscussionWebview {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Discussions</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.css">
     <style>
       body {
         font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);

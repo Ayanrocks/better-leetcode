@@ -8,6 +8,11 @@ export class LeetCodeStatusBarController {
   private readonly statusBarItem: vscode.StatusBarItem;
   private readonly authManager: LeetCodeAuthManager;
 
+  /**
+   * Creates an instance of LeetCodeStatusBarController.
+   *
+   * @param authManager The LeetCode authentication manager.
+   */
   constructor(authManager: LeetCodeAuthManager) {
     this.authManager = authManager;
     this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -51,8 +56,8 @@ export class LeetCodeStatusBarController {
       this.statusBarItem.text = '$(sign-in) Better LeetCode: Sign In';
       this.statusBarItem.command = 'better-leetcode.signin';
       this.statusBarItem.tooltip = 'Click to sign in to LeetCode';
-      this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
-      this.statusBarItem.color = undefined;
+      this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+      this.statusBarItem.color = 'white';
     }
   }
 }

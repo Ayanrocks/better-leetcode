@@ -14,6 +14,8 @@ interface ProblemCacheData {
 /**
  * Returns the canonical cache directory for Better LeetCode.
  * All cached data lives under ~/.better-leetcode/cache/.
+ *
+ * @returns The canonical cache directory path.
  */
 function getCacheDir(): string {
   return path.join(os.homedir(), '.better-leetcode', 'cache');
@@ -21,6 +23,8 @@ function getCacheDir(): string {
 
 /**
  * Returns the path to the single problems cache file.
+ *
+ * @returns The path to the single problems cache file.
  */
 function getCacheFile(): string {
   return path.join(getCacheDir(), 'problems_cache.json');
@@ -28,6 +32,9 @@ function getCacheFile(): string {
 
 type RefreshMode = 'normal' | 'incremental' | 'full';
 
+/**
+ * Tree data provider for the "All Problems" view in VS Code.
+ */
 export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> =
     new vscode.EventEmitter<vscode.TreeItem | undefined | null | void>();
@@ -37,6 +44,11 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
   private problemsCache: Problem[] = [];
   private refreshMode: RefreshMode = 'normal';
 
+  /**
+   * Creates an instance of AllProblemsTreeDataProvider.
+   *
+   * @param authManager The LeetCode authentication manager.
+   */
   constructor(private authManager: LeetCodeAuthManager) {}
 
   /**
@@ -83,15 +95,29 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
 
   /**
    * Returns the absolute path to the cache file for external inspection.
+   *
+   * @returns The absolute path to the cache file.
    */
   getCacheFilePath(): string {
     return getCacheFile();
   }
 
+  /**
+   * Gets the tree item for the given element.
+   *
+   * @param element The tree item element.
+   * @returns The tree item.
+   */
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
 
+  /**
+   * Gets the children elements of the tree item.
+   *
+   * @param element The parent tree item.
+   * @returns A promise that resolves to the children tree items.
+   */
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (element) {
       return [];
@@ -130,6 +156,8 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
 
   /**
    * Returns the currently cached/loaded problems list.
+   *
+   * @returns The currently cached/loaded problems.
    */
   public getProblemsList(): Problem[] {
     return this.problemsCache;
@@ -138,11 +166,18 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
   /**
    * Ensures problems are loaded (from cache or API) and returns the full list.
    * Unlike getProblemsList(), this will trigger a fetch if the cache is empty.
+   *
+   * @returns A promise that resolves to the full list of problems.
    */
   public async loadProblemsAsync(): Promise<Problem[]> {
     return this.loadProblems();
   }
 
+  /**
+   * Loads problems from the memory cache, disk cache, or by fetching them from the API.
+   *
+   * @returns A promise that resolves to the loaded problems.
+   */
   private async loadProblems(): Promise<Problem[]> {
     // Capture and reset the refresh mode so it only applies once
     const mode = this.refreshMode;
@@ -204,6 +239,9 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
    * Performs an incremental update by comparing the cached problem count
    * against the current API total and fetching only the delta.
    * Falls back to a full fetch if no valid cache exists.
+   *
+   * @param cacheFile The path to the cache file.
+   * @returns A promise that resolves when the incremental update is complete.
    */
   private async incrementalUpdate(cacheFile: string): Promise<void> {
     let existingQuestions: Problem[] = [];
@@ -265,7 +303,12 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
           problemsetQuestionList: { total: number; questions: Problem[] };
         }>(queryStr, { categorySlug: '', skip: 0, limit: 1, filters: {} });
 
-        if (!firstData?.problemsetQuestionList) {
+        if (
+          firstData === null ||
+          firstData === undefined ||
+          firstData.problemsetQuestionList === undefined ||
+          firstData.problemsetQuestionList === null
+        ) {
           Logger.getInstance().error('tree', 'Failed to query API total during incremental update');
           this.problemsCache = existingQuestions;
           return;
@@ -300,7 +343,12 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
             const data = await client.query<{
               problemsetQuestionList: { total: number; questions: Problem[] };
             }>(queryStr, { categorySlug: '', skip, limit: batchSize, filters: {} });
-            if (!data?.problemsetQuestionList) {
+            if (
+              data === null ||
+              data === undefined ||
+              data.problemsetQuestionList === undefined ||
+              data.problemsetQuestionList === null
+            ) {
               return [];
             }
             return data.problemsetQuestionList.questions;
@@ -335,6 +383,9 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
 
   /**
    * Fetches the complete problem catalog from the API and writes it to disk.
+   *
+   * @param cacheFile The path to the cache file.
+   * @returns A promise that resolves when all problems are fetched and cached.
    */
   private async fetchAndCacheAllProblems(cacheFile: string): Promise<void> {
     await vscode.window.withProgress(
@@ -361,6 +412,8 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
 
   /**
    * Ensures the cache directory exists, creating it recursively if needed.
+   *
+   * @returns A promise that resolves when the cache directory is verified or created.
    */
   private async ensureCacheDir(): Promise<void> {
     const dir = getCacheDir();
@@ -369,6 +422,12 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
     }
   }
 
+  /**
+   * Gets the display description for a given difficulty level.
+   *
+   * @param difficulty The difficulty level from the API.
+   * @returns The display description string.
+   */
   private getDifficultyDescription(difficulty: string): string {
     switch (difficulty) {
       case 'Easy':
@@ -382,6 +441,14 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
     }
   }
 
+  /**
+   * Gets the appropriate theme icon for a problem based on its status and attributes.
+   *
+   * @param difficulty The difficulty level of the problem.
+   * @param status The status of the problem.
+   * @param paidOnly Whether the problem is paid-only.
+   * @returns The theme icon for the problem.
+   */
   private getDifficultyIcon(
     difficulty: string,
     status?: string | null,
@@ -407,7 +474,7 @@ export class AllProblemsTreeDataProvider implements vscode.TreeDataProvider<vsco
         break;
     }
 
-    if (paidOnly) {
+    if (paidOnly === true) {
       return new vscode.ThemeIcon('lock', new vscode.ThemeColor(colorId));
     }
     return new vscode.ThemeIcon('tag', new vscode.ThemeColor(colorId));

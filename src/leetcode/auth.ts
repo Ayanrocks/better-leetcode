@@ -19,6 +19,11 @@ export class LeetCodeAuthManager {
    */
   public readonly onDidChangeSession = this._onDidChangeSession.event;
 
+  /**
+   * Creates an instance of LeetCodeAuthManager.
+   *
+   * @param context - The extension context.
+   */
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
     this.client = new LeetCodeClient();
@@ -185,6 +190,8 @@ export class LeetCodeAuthManager {
 
   /**
    * Gets the currently authenticated user's profile status.
+   *
+   * @returns The user status or undefined.
    */
   public getStatus(): UserStatus | undefined {
     return this.userStatus;
@@ -192,6 +199,8 @@ export class LeetCodeAuthManager {
 
   /**
    * Gets the LeetCode API client instance.
+   *
+   * @returns The LeetCode client.
    */
   public getClient(): LeetCodeClient {
     return this.client;
@@ -209,6 +218,8 @@ export class LeetCodeAuthManager {
 
   /**
    * Updates the internal user status and triggers the change event.
+   *
+   * @param status - The user status or undefined.
    */
   private setSession(status: UserStatus | undefined): void {
     this.userStatus = status;

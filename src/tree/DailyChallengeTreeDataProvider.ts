@@ -2,22 +2,45 @@ import * as vscode from 'vscode';
 import { LeetCodeAuthManager } from '../leetcode';
 import { Logger } from '../logger';
 
+/**
+ * Tree data provider for the LeetCode Daily Challenge tree view.
+ */
 export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> =
     new vscode.EventEmitter<vscode.TreeItem | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | null | void> =
     this._onDidChangeTreeData.event;
 
+  /**
+   * Creates an instance of DailyChallengeTreeDataProvider.
+   *
+   * @param authManager The LeetCode authentication manager.
+   */
   constructor(private authManager: LeetCodeAuthManager) {}
 
+  /**
+   * Refreshes the daily challenge tree data provider.
+   */
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
 
+  /**
+   * Returns the given tree item.
+   *
+   * @param element The tree item.
+   * @returns The resolved tree item.
+   */
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
 
+  /**
+   * Retrieves the children for the tree item.
+   *
+   * @param element The optional parent tree item.
+   * @returns A promise that resolves to an array of tree items representing the daily challenge.
+   */
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (element) {
       return [];
@@ -61,6 +84,12 @@ export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<v
     }
   }
 
+  /**
+   * Gets the description label for the difficulty.
+   *
+   * @param difficulty The difficulty string.
+   * @returns The formatted difficulty description.
+   */
   private getDifficultyDescription(difficulty: string): string {
     switch (difficulty) {
       case 'Easy':
@@ -74,6 +103,14 @@ export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<v
     }
   }
 
+  /**
+   * Gets the theme icon with appropriate color/symbol based on difficulty, status, and premium status.
+   *
+   * @param difficulty The difficulty level.
+   * @param status The status of the problem (e.g. 'ac' for accepted).
+   * @param paidOnly Whether the problem is premium only.
+   * @returns The VS Code theme icon representing the problem status/difficulty.
+   */
   private getDifficultyIcon(
     difficulty: string,
     status?: string | null,
@@ -99,7 +136,7 @@ export class DailyChallengeTreeDataProvider implements vscode.TreeDataProvider<v
         break;
     }
 
-    if (paidOnly) {
+    if (paidOnly === true) {
       return new vscode.ThemeIcon('lock', new vscode.ThemeColor(colorId));
     }
     return new vscode.ThemeIcon('tag', new vscode.ThemeColor(colorId));

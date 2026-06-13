@@ -1,182 +1,167 @@
 # AGENTS_HISTORY
 
-## 2026-06-10 — Refactoring, Documentation, Security, and Code Quality Improvements
+## 2026-06-13 — Fix Logger Test Suite Teardown Flakiness
 
 ### What was done
 
-1. Updated `AGENTS_HISTORY.md`, `CHANGELOG.md`, and `README.md` to properly document the v1.3.0 discussion browsing feature and format direct SQL Support.
-2. Updated `package.json` scripts to run via `bun`.
-3. Extracted duplicate GraphQL `DiscussPost` fragment in `src/leetcode/client.ts`.
-4. Fixed layout resolution bug in `src/extension.ts` and added unit test.
-5. Implemented XSS protection in `TextRenderer.render` and `ProblemWebview` hints rendering.
-6. Refactored `DiscussionWebview` to use non-mutating mapped objects.
-7. Fixed various TypeScript compilation and ESLint issues in modified files.
-8. Removed obsolete/debug JavaScript files (`run-test.js`, `test-api.js`, `test-viewcolumn.js`, `test-vscode-api.js`).
-
-### Files modified/deleted
-
-- `package.json`
-- `AGENTS_HISTORY.md`
-- `CHANGELOG.md`
-- `README.md`
-- `src/extension.ts`
-- `src/leetcode/client.ts`
-- `src/utils/textRenderer.ts`
-- `src/webview/DiscussionWebview.ts`
-- `src/webview/ProblemWebview.ts`
-- `src/test/suite/extension.test.ts`
-- `src/test/suite/textRenderer.test.ts`
-- `run-test.js` [DELETE]
-- `test-api.js` [DELETE]
-- `test-viewcolumn.js` [DELETE]
-- `test-vscode-api.js` [DELETE]
-
-## 2026-06-10 — Bump Version to v1.3.0 and Update Documentation
-
-### What was done
-
-1. Bumped the extension version to `1.3.0` in `package.json`.
-2. Added discussion browsing feature:
-   - Implemented `DiscussionWebview` to show threaded discussions for problems.
-   - Added `getDiscussionComments` and `getCommentReplies` GraphQL client methods in `LeetCodeClient`.
-   - Added `TextRenderer` utility to format and render raw HTML/unicode comment text.
-   - Integrated the "Show Discussions" button into `ProblemWebview` and added `topicId` to the `ProblemDetails` type/GraphQL query.
-3. Updated `CHANGELOG.md` with the additions in version `1.3.0` (Hints support, Discussion browsing, and CSRF/Session Fixation protection for Web Authorization callback flow) and updated the comparison links.
-4. Updated `README.md` to detail new features since `v1.0.0` (including Web Authorization login, direct SQL support, problem hints, interactive language switching, new shortcuts, and UI improvements), added the new discussion browsing feature, and documented the browser-based authorization flow.
+1. Fixed a Windows-specific test cleanup issue in `src/test/suite/logger.test.ts`. Modified `teardown()` to be asynchronous and retry `fs.rmSync()` with a short delay if it fails due to asynchronous file locking (`ENOTEMPTY`).
+2. Verified all tests pass successfully.
 
 ### Files modified
 
-- `package.json`
-- `CHANGELOG.md`
-- `README.md`
-- `src/extension.ts`
-- `src/leetcode/client.ts`
-- `src/leetcode/types.ts`
-- `src/utils/textRenderer.ts`
-- `src/webview/DiscussionWebview.ts`
-- `src/webview/ProblemWebview.ts`
+- `src/test/suite/logger.test.ts`
 
-## 2026-06-09 — Add Hints Support
+## 2026-06-13 — Fix JSDoc Lint Errors in auth.ts
 
 ### What was done
 
-1. Added `hints?: string[]` to `ProblemDetails` interface.
-2. Updated GraphQL query to fetch `hints`.
-3. Updated `ProblemWebview` to conditionally show a "Show Hints" dropdown to view hints line by line.
-
-### Files modified
-
-- `src/leetcode/types.ts`
-- `src/leetcode/client.ts`
-- `src/webview/ProblemWebview.ts`
-
-## 2026-06-05 — Bump version to v1.2.1 and update CHANGELOG.md
-
-### What was done
-
-1. Updated extension version from `1.2.0` to `1.2.1` in `package.json`.
-2. Added a changelog entry in `CHANGELOG.md` under `[1.2.1] - 2026-06-05` documenting the bug fix where helper functions/code defined above the main solution function were incorrectly stripped.
-3. Added the comparison link for `[1.2.1]` at the bottom of `CHANGELOG.md`.
-
-### Files modified
-
-- `package.json`
-- `CHANGELOG.md`
-
-## 2026-06-05 — Fix Boilerplate Code Extraction Order
-
-### What was done
-
-1. Fixed a bug in `BoilerplateManager.extractSolutionCode` where helper functions or structs defined above the main entrypoint function/class were discarded during submission or testing.
-2. Swapped Strategy 1 (originalSnippet matching) and Strategy 2 (known prefix stripping) so that prefix stripping is prioritized. This ensures that the boilerplate prefix is cleanly removed from the top of the file without discarding user-written code that sits above the main LeetCode class/function.
-3. Added a unit test in `src/test/suite/boilerplate.test.ts` to verify that helper functions written above the main solution code are correctly preserved when extracting solution code.
-
-### Files modified
-
-- `src/leetcode/boilerplate.ts`
-- `src/test/suite/boilerplate.test.ts`
-
-## 2026-06-03 — Implement CSRF and Session Fixation Protection
-
-### What was done
-
-1. Implemented a one-time pending authentication marker (`pendingAuth`) on `LeetCodeAuthManager` to prevent CSRF and session-fixation attacks during the Web Authorization callback flow.
-2. Enabled `pendingAuth = true` immediately before launching the web browser authorization URL in `src/extension.ts`.
-3. Validated the authority (host) and path of incoming custom scheme callback URIs in `handleUri` to match the extension's lowercase context ID (e.g. `ayanrocks.better-leetcode`) and `/` or `""` path.
-4. Updated existing test cases in `src/test/suite/leetcode.test.ts` to mock the extension context ID, set `pendingAuth = true` where success or validation flow testing is expected, and asserted that failed callbacks do not persist bad credentials.
-5. Added new unit tests verifying rejection of unauthorized callbacks (due to missing pending requests or incorrect authority/path).
+1. Fixed all `require-jsdoc` and `valid-jsdoc` lint errors in `src/leetcode/auth.ts` by adding JSDoc comments to the constructor and private/public methods.
+2. Verified that project linter (`bun run lint`) and tests (`bun run test`) pass successfully.
 
 ### Files modified
 
 - `src/leetcode/auth.ts`
-- `src/extension.ts`
-- `src/test/suite/leetcode.test.ts`
 
-## 2026-06-02 — Implement Auth State Refresh & Sidebar Controls
+## 2026-06-13 — Fix JSDoc Lint Errors in extension.ts
 
 ### What was done
 
-1. Subscribed to `authManager.onDidChangeSession` in `src/extension.ts` to trigger a global refresh via `better-leetcode.refresh` whenever the authentication state changes (such as logging in or out).
-2. Added individual refresh commands (`better-leetcode.refreshDailyChallenge`, `better-leetcode.refreshAllProblems`, `better-leetcode.refreshStudyLists`, and `better-leetcode.refreshContests`) so that clicking the refresh button on a specific view header only refreshes that specific view section.
-3. Corrected extension publisher identifier from `better-leetcode-team` to `ayanrocks` in test suite assertions.
-4. Refactored `statusBar.test.ts` mock implementations and test logic to be fully type-safe, eliminating all explicit `any` types and `@ts-ignore` statements to comply with standard TypeScript guidelines.
+1. Fixed all `require-jsdoc` and `valid-jsdoc` lint errors in `src/extension.ts` by adding missing JSDoc comments/annotations for parameters and returns.
+2. Verified that ESLint check passes successfully.
+
+### Files modified
+
+- `src/extension.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in TestResultsPanel.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` and `valid-jsdoc` lint errors in `src/webview/TestResultsPanel.ts` by adding missing JSDoc comments to the constructor, `resolveWebviewView` method, and all private helper methods.
+2. Verified that ESLint now compiles with zero errors for `src/webview/TestResultsPanel.ts`.
+
+### Files modified
+
+- `src/webview/TestResultsPanel.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in DiscussionWebview.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` lint errors in `src/webview/DiscussionWebview.ts` by adding JSDoc comments to the class, constructor, and all methods.
+2. Verified that ESLint checks pass successfully.
+
+### Files modified
+
+- `src/webview/DiscussionWebview.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in DailyChallengeTreeDataProvider.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` lint errors in `src/tree/DailyChallengeTreeDataProvider.ts` by adding JSDoc comments to the class declaration, constructor, methods, and helper functions.
+2. Verified that ESLint check passes successfully.
+
+### Files modified
+
+- `src/tree/DailyChallengeTreeDataProvider.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in StudyListsTreeDataProvider.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` lint errors in `src/tree/StudyListsTreeDataProvider.ts` by adding missing JSDoc comments to classes (`StudyPlanItem`, `FavoriteListItem`, `StudyPlanGroupItem`, `StudyPlanProblemItem`, `StudyListsTreeDataProvider`), their constructors, and methods (`getDifficultyDescription`, `getDifficultyIcon`, `refresh`, `getTreeItem`, `getChildren`).
+2. Verified that ESLint check now passes successfully.
+
+### Files modified
+
+- `src/tree/StudyListsTreeDataProvider.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in textRenderer.ts
+
+### What was done
+
+1. Added JSDoc comment for `TextRenderer` class to resolve the `require-jsdoc` lint error.
+2. Verified that ESLint now passes with zero JSDoc lint errors for `src/utils/textRenderer.ts`.
+
+### Files modified
+
+- `src/utils/textRenderer.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in Logger.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` and `valid-jsdoc` lint errors in `src/logger/Logger.ts` by adding missing JSDoc comments to class constructor, parameters, and return types.
+2. Verified that ESLint check passes successfully.
+
+### Files modified
+
+- `src/logger/Logger.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in ProblemWebview.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` lint errors in `src/webview/ProblemWebview.ts` by adding JSDoc comments to the class declaration, constructor, and methods.
+2. Verified that ESLint check passes successfully.
+
+### Files modified
+
+- `src/webview/ProblemWebview.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in statusBar.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` lint errors in `src/statusBar.ts` by adding a descriptive JSDoc comment for the `LeetCodeStatusBarController` constructor.
+2. Verified that ESLint checks now pass completely without JSDoc or style errors.
+
+### Files modified
+
+- `src/statusBar.ts`
+
+## 2026-06-13 — Bump Version to v1.3.1 and Update Changelog
+
+### What was done
+
+1. Bumped the extension version to `1.3.1` in `package.json`.
+2. Updated `CHANGELOG.md` to document the changes introduced since `1.3.0`, including the GitHub Actions CI pipeline, enhanced markdown/HTML rendering with XSS protection, high-visibility status bar logging alert, and ESLint/TypeScript compilation fixes.
 
 ### Files modified
 
 - `package.json`
-- `src/extension.ts`
-- `src/test/suite/extension.test.ts`
-- `src/test/suite/statusBar.test.ts`
+- `CHANGELOG.md`
 
-## 2026-06-02 — Update README Badges and Add Changelog
+## 2026-06-13 — Fix JSDoc Lint Errors in client.ts
 
 ### What was done
-1. Updated `README.md` badges to use the modern `vsmarketplacebadges.dev` service instead of the retired `shields.io` Visual Studio Marketplace endpoints.
-2. Formatted all README badges (Version, Installs, License, Buy Me A Coffee) to use the modern `for-the-badge` style to match the aesthetic of `Ileriayo/markdown-badges`.
-3. Created a standard `CHANGELOG.md` file following the "Keep a Changelog" format to document past releases (v1.0.0, v1.0.1, v1.0.2).
 
-### Files modified/created
-- `README.md` — updated badges to use vsmarketplacebadges.dev `for-the-badge` style and corrected item publisher casing
-- `CHANGELOG.md` — created new standard changelog file
-
-## 2026-06-02 — Fix Language Tracking Bugs
-
-### What was done
-Fixed two bugs in `src/extension.ts`:
-
-1. **Daily problem editor focus**: `handleOpenProblem` was using `vscode.workspace.textDocuments` (includes closed/cached docs) to check for existing editors. Changed to `vscode.window.visibleTextEditors` so it only detects actually visible tabs. When a visible tab exists for the problem, only the webview refreshes — the editor is left untouched. When no tab is visible, the default language file opens.
-
-2. **Language switcher showing wrong language**: `handleChangeLanguage` was reading `metadata.lang` to determine the current language. Changed to derive language from the active tab's file extension via new exported function `deriveLangFromExtension()`.
-
-### Key changes
-- Extracted duplicated `extToLangMap` into module-level `EXT_TO_LANG_MAP` constant
-- Added exported `deriveLangFromExtension(filePath)` utility
-- Removed now-unused `showEditorIfAlreadyOpen` parameter from `handleOpenProblem`
-- Fixed pre-existing TS2532 errors (unsafe `codeSnippets[0]` access)
-- Added 13 tests for `deriveLangFromExtension` and `EXT_TO_LANG_MAP`
+1. Fixed all `require-jsdoc` and `valid-jsdoc` lint errors in `src/leetcode/client.ts` by adding/updating JSDoc comments with correct `@param` and `@returns` tags.
+2. Verified that ESLint check passes successfully.
 
 ### Files modified
-- `src/extension.ts` — core fixes
-- `src/test/suite/extension.test.ts` — new tests
 
-### Test status
-- 61 passing, 4 failing (pre-existing status bar naming mismatches, unrelated)
+- `src/leetcode/client.ts`
 
-## 2026-06-02 — Web Authorization Login Flow (v1.1.0)
+## 2026-06-13 — Harden CI Workflows, Upgraded KaTeX, Pin Bun and Fail-Closed Premium Checks
 
 ### What was done
 
-Added a Web Authorization login flow matching LeetCode's official `authorize-login` endpoint, used by `vscode-leetcode`. Users now see a QuickPick with two options:
+1. Hardened `.github/workflows/ci.yml` by adding a top-level `permissions` block with `contents: read`, adding `persist-credentials: false` to all `actions/checkout` steps, and pinning all actions to specific commit SHAs.
+2. Added `"packageManager": "bun@1.3.14"` to `package.json`.
+3. Upgraded KaTeX CDN stylesheet links from `v0.16.8` to `v0.17.0` in `src/webview/DiscussionWebview.ts` and `src/webview/ProblemWebview.ts` to align with the package version in `package.json`.
+4. Refactored the premium-access check in `src/extension.ts` to fail closed using the strict `status?.isPremium === true` requirement.
+5. Added status bar color assertions (`item.color === 'white'`) in `src/test/suite/statusBar.test.ts`.
+6. Hardened questionId parsing in `src/leetcode/client.ts` to guard against NaN results.
+7. Verified that all formatting, linting, and 92 unit tests pass successfully.
 
-1. **Web Authorization (Recommended)** — opens browser to `${endpoint}/authorize-login/${uriScheme}/?path=${extensionId}`. LeetCode redirects back to VS Code via custom URI scheme with cookie in query params.
-2. **LeetCode Cookie** — manual fallback using the existing clipboard/paste cookie flow.
+### Files modified
 
-### Key changes
-
-- `src/leetcode/auth.ts` — added `handleUri(uri)` method to parse cookie from URI callback and login
-- `src/extension.ts` — split `handleSignIn` into QuickPick + `handleCookieSignIn`; registered `vscode.window.registerUriHandler` in `activate()`; updated `handleShowUser` signature to pass `context`
-- `src/test/suite/leetcode.test.ts` — added 3 tests: valid URI login, missing cookie param, invalid cookie graceful failure
-
-### Test status
-
-- 64 passing, 4 failing (pre-existing status bar naming mismatches, unrelated)
+- `.github/workflows/ci.yml`
+- `package.json`
+- `src/webview/DiscussionWebview.ts`
+- `src/webview/ProblemWebview.ts`
+- `src/extension.ts`
+- `src/test/suite/statusBar.test.ts`
+- `src/leetcode/client.ts`

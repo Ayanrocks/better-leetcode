@@ -1,26 +1,11 @@
 import * as vscode from 'vscode';
 import { ProblemDetails } from '../leetcode/types';
 import { DiscussionWebview } from './DiscussionWebview';
+import { TextRenderer } from '../utils/textRenderer';
 
-function escapeHtml(str: string): string {
-  return str.replace(/[&<>"']/g, (match) => {
-    switch (match) {
-      case '&':
-        return '&amp;';
-      case '<':
-        return '&lt;';
-      case '>':
-        return '&gt;';
-      case '"':
-        return '&quot;';
-      case "'":
-        return '&#39;';
-      default:
-        return match;
-    }
-  });
-}
-
+/**
+ * Webview provider for displaying LeetCode problem details.
+ */
 export class ProblemWebview {
   public static currentPanel: ProblemWebview | undefined;
   public static readonly viewType = 'problemWebview';
@@ -31,6 +16,13 @@ export class ProblemWebview {
   private readonly _panel: vscode.WebviewPanel;
   private _disposables: vscode.Disposable[] = [];
 
+  /**
+   * Creates or shows the problem webview panel.
+   *
+   * @param extensionUri The URI of the extension.
+   * @param details The details of the problem to display.
+   * @param viewColumn The view column in which to show the webview.
+   */
   public static createOrShow(
     extensionUri: vscode.Uri,
     details: ProblemDetails,
@@ -58,6 +50,11 @@ export class ProblemWebview {
     ProblemWebview.currentPanel.update(details);
   }
 
+  /**
+   * Creates an instance of ProblemWebview.
+   *
+   * @param panel The webview panel to manage.
+   */
   private constructor(panel: vscode.WebviewPanel) {
     this._panel = panel;
 
@@ -87,6 +84,9 @@ export class ProblemWebview {
     );
   }
 
+  /**
+   * Disposes the webview panel and clears all disposables.
+   */
   public dispose(): void {
     ProblemWebview.currentPanel = undefined;
     this._panel.dispose();
@@ -103,6 +103,11 @@ export class ProblemWebview {
     }
   }
 
+  /**
+   * Updates the webview panel content with the new problem details.
+   *
+   * @param details The new problem details.
+   */
   public update(details: ProblemDetails): void {
     this.currentProblemSlug = details.titleSlug;
     if (details.topicId !== undefined && details.topicId !== null) {
@@ -114,6 +119,12 @@ export class ProblemWebview {
     this._panel.webview.html = this._getHtmlForWebview(details);
   }
 
+  /**
+   * Generates the HTML content for the webview.
+   *
+   * @param details The problem details used to render the HTML.
+   * @returns The HTML string for the webview.
+   */
   private _getHtmlForWebview(details: ProblemDetails): string {
     const difficultyClass = details.difficulty.toLowerCase();
 
@@ -123,6 +134,7 @@ export class ProblemWebview {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${details.title}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.17.0/dist/katex.min.css">
     <style>
       body {
         font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
@@ -326,7 +338,7 @@ export class ProblemWebview {
         ? `
       <div id="hints-container" class="tags-container">
         <div class="hints-list">
-          ${details.hints.map((hint, index) => `<div class="hint-item"><strong>Hint ${index + 1}:</strong> <span>${escapeHtml(hint)}</span></div>`).join('')}
+          ${details.hints.map((hint, index) => `<div class="hint-item"><strong>Hint ${index + 1}:</strong> <span>${TextRenderer.render(hint)}</span></div>`).join('')}
         </div>
       </div>
     `

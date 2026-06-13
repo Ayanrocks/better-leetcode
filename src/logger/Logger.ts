@@ -35,6 +35,11 @@ export class Logger implements vscode.Disposable {
   private currentFileSize: number = 0;
   private disposed: boolean = false;
 
+  /**
+   * Initializes a new instance of the Logger class.
+   *
+   * @param options - Logger configuration options.
+   */
   private constructor(options: LoggerOptions) {
     this.level = options.level;
     this.fileConfig = options.fileConfig;
@@ -65,6 +70,7 @@ export class Logger implements vscode.Disposable {
   /**
    * Returns the singleton Logger instance.
    *
+   * @returns The singleton Logger instance.
    * @throws Error if `initialize()` has not been called yet.
    */
   public static getInstance(): Logger {
@@ -76,6 +82,8 @@ export class Logger implements vscode.Disposable {
 
   /**
    * Returns the default log directory path: ~/.better-leetcode/logs/
+   *
+   * @returns The default log directory path.
    */
   public static getDefaultLogDir(): string {
     return path.join(os.homedir(), '.better-leetcode', 'logs');
@@ -93,6 +101,8 @@ export class Logger implements vscode.Disposable {
 
   /**
    * Returns the current minimum log level.
+   *
+   * @returns The current minimum log level.
    */
   public getLevel(): LogLevel {
     return this.level;
@@ -183,6 +193,11 @@ export class Logger implements vscode.Disposable {
   /**
    * Core logging method. Formats the message, applies redaction, and
    * writes to both sinks if the message meets the current level threshold.
+   *
+   * @param level - The log level of the message.
+   * @param source - Module/component tag (e.g., "api", "auth", "tree").
+   * @param message - Human-readable log message.
+   * @param data - Optional structured data or error to append.
    */
   private log(level: LogLevel, source: string, message: string, data?: unknown): void {
     if (level < this.level || this.disposed) {
@@ -357,6 +372,8 @@ export class Logger implements vscode.Disposable {
 
   /**
    * Returns the absolute path to the active (non-rotated) log file.
+   *
+   * @returns The absolute path to the active log file.
    */
   private getActiveLogPath(): string {
     return path.join(this.fileConfig.logDir, `${this.fileConfig.baseFileName}.log`);

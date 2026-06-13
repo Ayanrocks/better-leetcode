@@ -318,6 +318,7 @@ export interface LayoutAction {
  *
  * @param isWebviewOpen Whether the problem webview is currently open anywhere
  * @param visibleEditorColumn The view column of the visible editor, or undefined if none
+ * @returns The layout actions to perform.
  */
 export function resolveLayoutActions(
   isWebviewOpen: boolean,
@@ -364,6 +365,11 @@ export function resolveLayoutActions(
 
 /**
  * Handles opening a problem by generating local files and displaying description & code side-by-side.
+ *
+ * @param authManager The LeetCode authentication manager instance.
+ * @param context The VS Code extension context.
+ * @param problemSlug The slug of the problem to open.
+ * @param preferredLang The optional preferred language to open the problem in.
  */
 export async function handleOpenProblem(
   authManager: LeetCodeAuthManager,
@@ -395,9 +401,12 @@ export async function handleOpenProblem(
     await config.update('storagePath', storagePath, vscode.ConfigurationTarget.Global);
   }
 
-  let defaultLanguage = preferredLang || config.get<string>('defaultLanguage');
-  let defaultDbLanguage = config.get<string>('defaultDbLanguage') || 'mysql';
-  if (defaultLanguage === undefined || defaultLanguage === '') {
+  let defaultLanguage =
+    preferredLang !== undefined && preferredLang !== ''
+      ? preferredLang
+      : (config.get<string>('defaultLanguage') ?? '');
+  const defaultDbLanguage = config.get<string>('defaultDbLanguage') ?? 'mysql';
+  if (defaultLanguage === '') {
     const languages = [
       { label: 'Python3', value: 'python3' },
       { label: 'Go', value: 'golang' },
@@ -444,9 +453,9 @@ export async function handleOpenProblem(
     return;
   }
 
-  if (details.paidOnly) {
+  if (details.paidOnly === true) {
     const status = authManager.getStatus();
-    if (!status?.isPremium) {
+    if (status?.isPremium !== true) {
       void vscode.window.showErrorMessage(
         `"${details.title}" is a premium problem. Please upgrade to LeetCode Premium to view it.`,
       );
@@ -563,9 +572,11 @@ export async function handleOpenProblem(
     // Upgrade old testcases.txt that only have the single sampleTestCase
     const existing = fs.readFileSync(testcasesPath, 'utf-8');
     if (
-      details.sampleTestCase &&
+      details.sampleTestCase !== undefined &&
+      details.sampleTestCase !== '' &&
       existing.trim() === details.sampleTestCase.trim() &&
-      details.exampleTestcases
+      details.exampleTestcases !== undefined &&
+      details.exampleTestcases !== ''
     ) {
       fs.writeFileSync(testcasesPath, details.exampleTestcases, 'utf-8');
     }
@@ -605,13 +616,15 @@ export async function handleOpenProblem(
       mssql: 'sql',
       oraclesql: 'oraclesql',
     };
-    const vscodeLangId = vscodeLangMap[targetLang] || 'sql';
+    const vscodeLangId = vscodeLangMap[targetLang] ?? 'sql';
     try {
       await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId);
     } catch {
       try {
         await vscode.languages.setTextDocumentLanguage(doc, 'sql');
-      } catch {}
+      } catch {
+        // Ignore errors if language mode cannot be set
+      }
     }
   }
   await vscode.window.showTextDocument(doc, {
@@ -624,6 +637,8 @@ export async function handleOpenProblem(
  * Handles the fuzzy search command.
  * Awaits full problem catalog loading to search all ~4k problems,
  * not just the subset that's been lazily loaded into the tree view.
+ *
+ * @param allProblemsProvider The tree data provider for all problems.
  */
 async function handleSearch(allProblemsProvider: AllProblemsTreeDataProvider): Promise<void> {
   const problems = await allProblemsProvider.loadProblemsAsync();
@@ -653,6 +668,11 @@ async function handleSearch(allProblemsProvider: AllProblemsTreeDataProvider): P
 
 /**
  * Handles the show discussions command.
+ *
+ * @param authManager The LeetCode authentication manager instance.
+ * @param context The VS Code extension context.
+ * @param topicId The ID of the topic/discussion.
+ * @param title The title of the topic/discussion.
  */
 async function handleShowDiscussions(
   authManager: LeetCodeAuthManager,
@@ -660,7 +680,12 @@ async function handleShowDiscussions(
   topicId: number,
   title: string,
 ): Promise<void> {
-  DiscussionWebview.createOrShow(context.extensionUri, authManager.getClient(), topicId, title);
+  await DiscussionWebview.createOrShow(
+    context.extensionUri,
+    authManager.getClient(),
+    topicId,
+    title,
+  );
 }
 
 /**
@@ -709,6 +734,9 @@ export function readTestCases(filePath: string, fallback: string): string {
 /**
  * Path to the global inputLineCount cache file.
  * Stored at the extension's global storage path so it persists across sessions.
+ *
+ * @param globalStoragePath The extension's global storage path.
+ * @returns The path to the global inputLineCount cache file.
  */
 function getInputLineCountCachePath(globalStoragePath: string): string {
   return path.join(globalStoragePath, 'inputLineCount.json');
@@ -757,6 +785,7 @@ function writeInputLineCountCache(globalStoragePath: string, slug: string, count
  * Returns the number of function parameters, or null if unparseable.
  *
  * @param metaDataStr - The raw metaData JSON string from the API.
+ * @returns The derived input line count, or null.
  */
 export function deriveFromMetaData(metaDataStr: string | undefined): number | null {
   if (metaDataStr === undefined || metaDataStr === '') {
@@ -779,6 +808,7 @@ export function deriveFromMetaData(metaDataStr: string | undefined): number | nu
  *
  * @param content - The problem's HTML content string.
  * @param exampleTestcases - The raw exampleTestcases string from the API.
+ * @returns The derived input line count, or null.
  */
 export function deriveFromHtmlContent(
   content: string | undefined,
@@ -901,9 +931,13 @@ export function normalizeResult(raw: SubmissionCheckResult): SubmissionCheckResu
     // 'expected_answer' for submissions. An empty array [] is not nullish,
     // so ?? alone won't fall through — check length explicitly.
     expected_answer:
-      raw.expected_answer && raw.expected_answer.length > 0
+      raw.expected_answer !== undefined &&
+      raw.expected_answer !== null &&
+      raw.expected_answer.length > 0
         ? raw.expected_answer
-        : (raw.expected_code_answer ?? []),
+        : raw.expected_code_answer !== undefined && raw.expected_code_answer !== null
+          ? raw.expected_code_answer
+          : [],
     code_output: raw.code_output ?? [],
     std_output_list: raw.std_output_list ?? [],
     compile_error: raw.compile_error ?? '',
@@ -1092,7 +1126,7 @@ async function handleSubmitSolution(
  * lets the user pick a new language, and creates/opens the new solution file.
  *
  * @param authManager - The LeetCode auth manager.
- * @param context - The extension context for storage URI access.
+ * @param _context - The extension context for storage URI access.
  */
 async function handleChangeLanguage(
   authManager: LeetCodeAuthManager,
@@ -1246,13 +1280,15 @@ async function handleChangeLanguage(
       mssql: 'sql',
       oraclesql: 'oraclesql',
     };
-    const vscodeLangId = vscodeLangMap[newLang] || 'sql';
+    const vscodeLangId = vscodeLangMap[newLang] !== undefined ? vscodeLangMap[newLang] : 'sql';
     try {
       await vscode.languages.setTextDocumentLanguage(doc, vscodeLangId);
     } catch {
       try {
         await vscode.languages.setTextDocumentLanguage(doc, 'sql');
-      } catch {}
+      } catch {
+        // Ignore errors if language mode cannot be set
+      }
     }
   }
   await vscode.window.showTextDocument(doc, vscode.ViewColumn.Two);
@@ -1409,7 +1445,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand(
       'better-leetcode.showDiscussions',
       (args?: { titleSlug?: string; topicId?: number; title?: string }) => {
-        if (!args || args.topicId === undefined || args.topicId === null || !args.title) {
+        if (
+          args === undefined ||
+          args === null ||
+          args.topicId === undefined ||
+          args.topicId === null ||
+          args.title === undefined ||
+          args.title === null ||
+          args.title === ''
+        ) {
           Logger.getInstance().warn(
             'extension',
             'Cannot show discussions: topicId or title is missing',
@@ -1436,7 +1480,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     }),
     vscode.commands.registerCommand('better-leetcode.openEditor', () => {
-      if (ProblemWebview.currentPanel?.currentProblemSlug) {
+      if (
+        ProblemWebview.currentPanel !== undefined &&
+        ProblemWebview.currentPanel !== null &&
+        ProblemWebview.currentPanel.currentProblemSlug !== undefined &&
+        ProblemWebview.currentPanel.currentProblemSlug !== ''
+      ) {
         void handleOpenProblem(
           authManager,
           context,
@@ -1545,7 +1594,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
       void handleOpenProblem(authManager, context, metadata.titleSlug, metadata.lang);
-    } else if (message.command === 'addTestCase' && message.input) {
+    } else if (
+      message.command === 'addTestCase' &&
+      message.input !== undefined &&
+      message.input !== null
+    ) {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
       const dir = path.dirname(editor.document.uri.fsPath);
@@ -1555,7 +1608,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         existing = fs.readFileSync(testcasesPath, 'utf-8');
       }
       const inputStr =
-        typeof message.input === 'string' ? message.input : String(message.input || '');
+        typeof message.input === 'string'
+          ? message.input
+          : String(message.input !== undefined && message.input !== null ? message.input : '');
       const existingLines = existing
         .split('\n')
         .map((l) => l.trim())

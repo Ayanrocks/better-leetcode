@@ -14,6 +14,7 @@
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "google",
     "prettier"
   ],
   "rules": {
@@ -34,8 +35,30 @@
       "error",
       "always"
     ],
-    "no-console": "warn"
+    "no-console": "warn",
+    "no-invalid-this": "off",
+    "@typescript-eslint/no-invalid-this": "error",
+    "valid-jsdoc": [
+      "error",
+      {
+        "requireParamType": false,
+        "requireReturnType": false,
+        "requireReturn": false,
+        "prefer": {
+          "return": "returns"
+        }
+      }
+    ]
   },
+  "overrides": [
+    {
+      "files": ["src/test/**/*.ts"],
+      "rules": {
+        "require-jsdoc": "off",
+        "valid-jsdoc": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "out",
     "dist",

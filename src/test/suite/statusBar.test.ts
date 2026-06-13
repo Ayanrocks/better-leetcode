@@ -40,7 +40,8 @@ suite('LeetCodeStatusBarController Test Suite', () => {
     assert.strictEqual(item.text, '$(sign-in) Better LeetCode: Sign In');
     assert.strictEqual(item.command, 'better-leetcode.signin');
     // Error background color indicates not signed in
-    assert.strictEqual(item.backgroundColor?.id, 'statusBarItem.warningBackground');
+    assert.strictEqual(item.backgroundColor?.id, 'statusBarItem.errorBackground');
+    assert.strictEqual(item.color, 'white');
   });
 
   test('update handles standard user signed in state', () => {
