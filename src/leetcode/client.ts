@@ -107,6 +107,8 @@ export class LeetCodeClient {
 
   /**
    * Returns the current LeetCode endpoint.
+   *
+   * @returns The base URL of the LeetCode endpoint.
    */
   public getEndpoint(): string {
     return this.endpoint;
@@ -127,6 +129,8 @@ export class LeetCodeClient {
 
   /**
    * Returns whether the client has credentials configured.
+   *
+   * @returns True if session and CSRF cookies are set, false otherwise.
    */
   public hasCredentials(): boolean {
     return this.cookies !== undefined;
@@ -227,6 +231,8 @@ export class LeetCodeClient {
 
   /**
    * Fetches the current daily coding challenge.
+   *
+   * @returns A promise that resolves to the daily challenge problem, or undefined if not found.
    */
   public async getDailyChallenge(): Promise<Problem | undefined> {
     const queryStr = `
@@ -268,6 +274,10 @@ export class LeetCodeClient {
 
   /**
    * Fetches a paginated list of problems.
+   *
+   * @param skip - The number of problems to skip for pagination.
+   * @param limit - The maximum number of problems to return.
+   * @returns A promise that resolves to an array of problems.
    */
   public async getProblems(skip: number = 0, limit: number = 50): Promise<Problem[]> {
     const queryStr = `
@@ -386,6 +396,9 @@ export class LeetCodeClient {
 
   /**
    * Fetches detailed information for a specific problem.
+   *
+   * @param titleSlug - The URL slug of the problem.
+   * @returns A promise that resolves to the detailed problem information.
    */
   public async getProblemDetails(titleSlug: string): Promise<ProblemDetails> {
     const queryStr = `
@@ -437,6 +450,9 @@ export class LeetCodeClient {
 
   /**
    * Fetches detailed questions and structure for a specific study plan.
+   *
+   * @param planSlug - The URL slug of the study plan.
+   * @returns A promise that resolves to the study plan details.
    */
   public async getStudyPlan(planSlug: string): Promise<StudyPlanDetails> {
     const queryStr = `
@@ -466,6 +482,8 @@ export class LeetCodeClient {
 
   /**
    * Fetches the user's favorite lists.
+   *
+   * @returns A promise that resolves to an array of favorite lists with name and slug.
    */
   public async getFavoriteLists(): Promise<{ name: string; slug: string }[]> {
     const queryStr = `
@@ -501,6 +519,9 @@ export class LeetCodeClient {
 
   /**
    * Fetches problems for a specific favorite list.
+   *
+   * @param favoriteSlug - The slug of the favorite list.
+   * @returns A promise that resolves to the questions in the favorite list.
    */
   public async getFavoriteListProblems(favoriteSlug: string): Promise<StudyPlanQuestion[]> {
     const queryStr = `
@@ -533,6 +554,8 @@ export class LeetCodeClient {
   /**
    * Builds common HTTP headers for REST API requests.
    * Includes cookie auth, CSRF token, user-agent, and origin headers.
+   *
+   * @returns The request headers key-value map.
    */
   private buildRestHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
@@ -555,6 +578,7 @@ export class LeetCodeClient {
    * Returns a promise that resolves after the specified delay.
    *
    * @param ms - Milliseconds to wait.
+   * @returns A promise that resolves after the timeout.
    */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -709,6 +733,9 @@ export class LeetCodeClient {
    * Fetches the list of past contests.
    * Uses contestV2HistoryContests GraphQL query, and falls back to
    * contestV2PastContest if empty or failing.
+   *
+   * @param limit - The maximum number of contests to fetch.
+   * @returns A promise that resolves to an array of contests.
    */
   public async getContests(limit: number = 5): Promise<LeetCodeContest[]> {
     try {
@@ -770,6 +797,9 @@ export class LeetCodeClient {
 
   /**
    * Fetches info and questions for a specific contest.
+   *
+   * @param contestSlug - The URL slug of the contest.
+   * @returns A promise that resolves to the contest details and questions.
    */
   public async getContestInfo(contestSlug: string): Promise<ContestInfo> {
     const queryStr = `
@@ -865,6 +895,12 @@ export class LeetCodeClient {
 
   /**
    * Fetches top-level discussion comments for a specific topic (problem).
+   *
+   * @param topicId - The ID of the discussion topic.
+   * @param pageNo - The page number to fetch.
+   * @param numPerPage - The number of comments per page.
+   * @param orderBy - The sorting order for comments (e.g. 'newest_to_oldest').
+   * @returns A promise that resolves to the discussion comments or undefined if it fails.
    */
   public async getDiscussionComments(
     topicId: number,
@@ -917,6 +953,11 @@ export class LeetCodeClient {
 
   /**
    * Fetches replies for a specific top-level discussion comment.
+   *
+   * @param commentId - The ID of the top-level comment.
+   * @param skip - The number of replies to skip for pagination.
+   * @param first - The number of replies to fetch.
+   * @returns A promise that resolves to the comment replies or undefined if it fails.
    */
   public async getCommentReplies(
     commentId: string,

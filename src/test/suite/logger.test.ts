@@ -12,7 +12,7 @@ suite('Logger Test Suite', () => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'better-leetcode-test-logger-'));
   });
 
-  teardown(() => {
+  teardown(async () => {
     try {
       const logger = Logger.getInstance();
       logger.dispose();
@@ -20,7 +20,21 @@ suite('Logger Test Suite', () => {
       // Ignored
     }
     if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
+      // On Windows, the file stream might take a few milliseconds to fully close.
+      // We retry rmSync with a small delay if it fails.
+      let retries = 5;
+      while (retries > 0) {
+        try {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+          break;
+        } catch (err) {
+          retries--;
+          if (retries === 0) {
+            throw err;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+      }
     }
   });
 

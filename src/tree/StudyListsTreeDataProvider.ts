@@ -3,7 +3,16 @@ import { LeetCodeAuthManager } from '../leetcode';
 import { StudyPlanQuestion } from '../leetcode/types';
 import { Logger } from '../logger';
 
+/**
+ * Represents a study plan item in the tree view.
+ */
 class StudyPlanItem extends vscode.TreeItem {
+  /**
+   * Creates an instance of StudyPlanItem.
+   *
+   * @param name The name of the study plan.
+   * @param planSlug The unique slug of the study plan.
+   */
   constructor(
     public readonly name: string,
     public readonly planSlug: string,
@@ -14,7 +23,16 @@ class StudyPlanItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * Represents a user's favorite list item in the tree view.
+ */
 class FavoriteListItem extends vscode.TreeItem {
+  /**
+   * Creates an instance of FavoriteListItem.
+   *
+   * @param name The name of the favorite list.
+   * @param slug The unique slug of the favorite list.
+   */
   constructor(
     public readonly name: string,
     public readonly slug: string,
@@ -25,7 +43,16 @@ class FavoriteListItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * Represents a group of questions within a study plan in the tree view.
+ */
 class StudyPlanGroupItem extends vscode.TreeItem {
+  /**
+   * Creates an instance of StudyPlanGroupItem.
+   *
+   * @param name The name of the study plan group.
+   * @param questions The list of questions belonging to this group.
+   */
   constructor(
     public readonly name: string,
     public readonly questions: StudyPlanQuestion[],
@@ -35,7 +62,15 @@ class StudyPlanGroupItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * Represents a single problem within a study plan or favorite list in the tree view.
+ */
 class StudyPlanProblemItem extends vscode.TreeItem {
+  /**
+   * Creates an instance of StudyPlanProblemItem.
+   *
+   * @param question The study plan question details.
+   */
   constructor(public readonly question: StudyPlanQuestion) {
     super(
       `${question.questionFrontendId}. ${question.title}`,
@@ -54,6 +89,12 @@ class StudyPlanProblemItem extends vscode.TreeItem {
     };
   }
 
+  /**
+   * Gets the display description for a given difficulty level.
+   *
+   * @param difficulty The difficulty string from LeetCode.
+   * @returns The formatted difficulty description.
+   */
   private static getDifficultyDescription(difficulty: string): string {
     const diff = difficulty.toUpperCase();
     switch (diff) {
@@ -68,6 +109,14 @@ class StudyPlanProblemItem extends vscode.TreeItem {
     }
   }
 
+  /**
+   * Resolves the appropriate theme icon for a problem based on difficulty, status, and lock state.
+   *
+   * @param difficulty The difficulty level of the problem.
+   * @param status The completion status of the problem.
+   * @param paidOnly Whether the problem is restricted to premium users.
+   * @returns A VS Code ThemeIcon representing the problem state.
+   */
   private static getDifficultyIcon(
     difficulty: string,
     status?: string | null,
@@ -101,22 +150,45 @@ class StudyPlanProblemItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * Tree data provider for LeetCode study lists and favorite lists in VS Code's sidebar.
+ */
 export class StudyListsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> =
     new vscode.EventEmitter<vscode.TreeItem | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | null | void> =
     this._onDidChangeTreeData.event;
 
+  /**
+   * Creates an instance of StudyListsTreeDataProvider.
+   *
+   * @param authManager The authentication manager to access the LeetCode client.
+   */
   constructor(private authManager: LeetCodeAuthManager) {}
 
+  /**
+   * Refreshes the study lists tree view by firing the change event.
+   */
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
 
+  /**
+   * Retrieves the tree item representation for a given element.
+   *
+   * @param element The tree item element.
+   * @returns The VS Code TreeItem itself.
+   */
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
 
+  /**
+   * Gets the children elements of the tree view.
+   *
+   * @param element The parent tree item element, or undefined if retrieving roots.
+   * @returns A promise resolving to an array of child tree items.
+   */
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (!element) {
       const defaultLists: vscode.TreeItem[] = [

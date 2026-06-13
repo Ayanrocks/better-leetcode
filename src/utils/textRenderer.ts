@@ -34,6 +34,11 @@ const xssFilter = new xss.FilterXSS({
   },
 });
 
+/**
+ * Utility class for parsing and rendering text from LeetCode.
+ * Handles decoding double-escaped sequences, processing math blocks (LaTeX) via KaTeX,
+ * converting markdown to HTML, and sanitizing the HTML output to prevent XSS.
+ */
 export class TextRenderer {
   /**
    * Parses and renders raw text from LeetCode APIs.

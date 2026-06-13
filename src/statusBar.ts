@@ -8,6 +8,11 @@ export class LeetCodeStatusBarController {
   private readonly statusBarItem: vscode.StatusBarItem;
   private readonly authManager: LeetCodeAuthManager;
 
+  /**
+   * Creates an instance of LeetCodeStatusBarController.
+   *
+   * @param authManager The LeetCode authentication manager.
+   */
   constructor(authManager: LeetCodeAuthManager) {
     this.authManager = authManager;
     this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);

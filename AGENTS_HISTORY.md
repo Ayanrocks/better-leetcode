@@ -1,5 +1,126 @@
 # AGENTS_HISTORY
 
+## 2026-06-13 — Fix Logger Test Suite Teardown Flakiness
+
+### What was done
+
+1. Fixed a Windows-specific test cleanup issue in `src/test/suite/logger.test.ts`. Modified `teardown()` to be asynchronous and retry `fs.rmSync()` with a short delay if it fails due to asynchronous file locking (`ENOTEMPTY`).
+2. Verified all tests pass successfully.
+
+### Files modified
+
+- `src/test/suite/logger.test.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in auth.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` and `valid-jsdoc` lint errors in `src/leetcode/auth.ts` by adding JSDoc comments to the constructor and private/public methods.
+2. Verified that project linter (`bun run lint`) and tests (`bun run test`) pass successfully.
+
+### Files modified
+
+- `src/leetcode/auth.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in extension.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` and `valid-jsdoc` lint errors in `src/extension.ts` by adding missing JSDoc comments/annotations for parameters and returns.
+2. Verified that ESLint check passes successfully.
+
+### Files modified
+
+- `src/extension.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in TestResultsPanel.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` and `valid-jsdoc` lint errors in `src/webview/TestResultsPanel.ts` by adding missing JSDoc comments to the constructor, `resolveWebviewView` method, and all private helper methods.
+2. Verified that ESLint now compiles with zero errors for `src/webview/TestResultsPanel.ts`.
+
+### Files modified
+
+- `src/webview/TestResultsPanel.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in DiscussionWebview.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` lint errors in `src/webview/DiscussionWebview.ts` by adding JSDoc comments to the class, constructor, and all methods.
+2. Verified that ESLint checks pass successfully.
+
+### Files modified
+
+- `src/webview/DiscussionWebview.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in DailyChallengeTreeDataProvider.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` lint errors in `src/tree/DailyChallengeTreeDataProvider.ts` by adding JSDoc comments to the class declaration, constructor, methods, and helper functions.
+2. Verified that ESLint check passes successfully.
+
+### Files modified
+
+- `src/tree/DailyChallengeTreeDataProvider.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in StudyListsTreeDataProvider.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` lint errors in `src/tree/StudyListsTreeDataProvider.ts` by adding missing JSDoc comments to classes (`StudyPlanItem`, `FavoriteListItem`, `StudyPlanGroupItem`, `StudyPlanProblemItem`, `StudyListsTreeDataProvider`), their constructors, and methods (`getDifficultyDescription`, `getDifficultyIcon`, `refresh`, `getTreeItem`, `getChildren`).
+2. Verified that ESLint check now passes successfully.
+
+### Files modified
+
+- `src/tree/StudyListsTreeDataProvider.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in textRenderer.ts
+
+### What was done
+
+1. Added JSDoc comment for `TextRenderer` class to resolve the `require-jsdoc` lint error.
+2. Verified that ESLint now passes with zero JSDoc lint errors for `src/utils/textRenderer.ts`.
+
+### Files modified
+
+- `src/utils/textRenderer.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in Logger.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` and `valid-jsdoc` lint errors in `src/logger/Logger.ts` by adding missing JSDoc comments to class constructor, parameters, and return types.
+2. Verified that ESLint check passes successfully.
+
+### Files modified
+
+- `src/logger/Logger.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in ProblemWebview.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` lint errors in `src/webview/ProblemWebview.ts` by adding JSDoc comments to the class declaration, constructor, and methods.
+2. Verified that ESLint check passes successfully.
+
+### Files modified
+
+- `src/webview/ProblemWebview.ts`
+
+## 2026-06-13 — Fix JSDoc Lint Errors in statusBar.ts
+
+### What was done
+
+1. Fixed all `require-jsdoc` lint errors in `src/statusBar.ts` by adding a descriptive JSDoc comment for the `LeetCodeStatusBarController` constructor.
+2. Verified that ESLint checks now pass completely without JSDoc or style errors.
+
+### Files modified
+
+- `src/statusBar.ts`
+
 ## 2026-06-13 — Bump Version to v1.3.1 and Update Changelog
 
 ### What was done
@@ -12,110 +133,13 @@
 - `package.json`
 - `CHANGELOG.md`
 
-## 2026-06-13 — Add GitHub Actions CI Pipeline and Fix Codebase Linting/Testing Errors
+## 2026-06-13 — Fix JSDoc Lint Errors in client.ts
 
 ### What was done
 
-1. Created a GitHub Actions pipeline `.github/workflows/ci.yml` that checks formatting, lints the codebase, compiles, tests on multiple OSes (Ubuntu, Windows, macOS), and validates extension packaging via `vsce`.
-2. Updated `.eslintrc.json` to extend the `google` linting ruleset per user request, while disabling strictly enforcing JSDocs (`require-jsdoc`, `valid-jsdoc`) to prevent excessive errors on existing internal functions.
-3. Fixed all 117+ linting and TypeScript compiler errors across the codebase, resolving strict boolean expressions, Request stringification base-to-string issues, any-type usages in tests, and unnecessary escapes.
-4. Resolved a status bar controller test failure where the expected background color ('warningBackground') did not match the recently updated actual color ('errorBackground').
-5. Configured the CI pipeline to fully enforce lint checks since all lint and type errors have been cleared (removed `continue-on-error: true`).
-6. Added `format:check` script to `package.json` for CI formatting enforcement.
-7. Removed the existing `publish.yml` workflow since publishing was explicitly requested to be excluded.
-
-### Files modified/added/deleted
-
-- `.github/workflows/ci.yml` [NEW]
-- `.github/workflows/publish.yml` [DELETE]
-- `.eslintrc.json`
-- `package.json`
-- `src/extension.ts`
-- `src/leetcode/client.ts`
-- `src/webview/TestResultsPanel.ts`
-- `src/tree/AllProblemsTreeDataProvider.ts`
-- `src/tree/ContestsTreeDataProvider.ts`
-- `src/tree/DailyChallengeTreeDataProvider.ts`
-- `src/tree/StudyListsTreeDataProvider.ts`
-- `src/utils/textRenderer.ts`
-- `src/test/suite/snapshot.ts`
-- `src/test/suite/extension.test.ts`
-- `src/test/suite/leetcode.test.ts`
-- `src/test/suite/testResultsPanel.test.ts`
-- `src/test/suite/textRenderer.test.ts`
-- `src/test/suite/boilerplate.test.ts`
-- `src/test/suite/statusBar.test.ts`
-
-## 2026-06-13 — Render Markdown, HTML, Emojis, and Code Blocks Natively with XSS Protection
-
-### What was done
-
-1. Refactored `TextRenderer.render` in `src/utils/textRenderer.ts` to decode double-escaped strings first, then parse using `marked` (with breaks enabled), and finally sanitize the resulting HTML using `xss` library to prevent XSS vulnerabilities.
-2. Configured custom whitelist in `xss` filter to allow safe inline styling/classes on elements, and to restrict `iframe` sources strictly to `leetcode.com` or `leetcode.cn`.
-3. Extracted LaTeX math blocks (`$math$` and `$$math$$`) into alphanumeric placeholders before markdown parsing to protect backslashes and math operators (like `<`) from being stripped/modified, and restored them HTML-escaped using a function callback to avoid special replacement pattern (`$$`) substitution in JavaScript `replace()`.
-4. Integrated `TextRenderer.render` into `ProblemWebview.ts` for rendering problem hints securely and formatting HTML/Markdown content appropriately.
-5. Updated existing unit tests in `src/test/suite/textRenderer.test.ts` to assert correct parsed HTML output, and added new tests to cover markdown formatting, HTML, styling, script tag sanitization, iframe domain restriction, and math equation block preservation.
-6. Installed npm packages `marked` and `xss` which are successfully bundled by `esbuild`.
+1. Fixed all `require-jsdoc` and `valid-jsdoc` lint errors in `src/leetcode/client.ts` by adding/updating JSDoc comments with correct `@param` and `@returns` tags.
+2. Verified that ESLint check passes successfully.
 
 ### Files modified
 
-- `package.json`
-- `src/utils/textRenderer.ts`
-- `src/webview/ProblemWebview.ts`
-- `src/test/suite/textRenderer.test.ts`
-
-## 2026-06-10 — Refactoring, Documentation, Security, and Code Quality Improvements
-
-### What was done
-
-1. Updated `AGENTS_HISTORY.md`, `CHANGELOG.md`, and `README.md` to properly document the v1.3.0 discussion browsing feature and format direct SQL Support.
-2. Updated `package.json` scripts to run via `bun`.
-3. Extracted duplicate GraphQL `DiscussPost` fragment in `src/leetcode/client.ts`.
-4. Fixed layout resolution bug in `src/extension.ts` and added unit test.
-5. Implemented XSS protection in `TextRenderer.render` and `ProblemWebview` hints rendering.
-6. Refactored `DiscussionWebview` to use non-mutating mapped objects.
-7. Fixed various TypeScript compilation and ESLint issues in modified files.
-8. Removed obsolete/debug JavaScript files (`run-test.js`, `test-api.js`, `test-viewcolumn.js`, `test-vscode-api.js`).
-
-### Files modified/deleted
-
-- `package.json`
-- `AGENTS_HISTORY.md`
-- `CHANGELOG.md`
-- `README.md`
-- `src/extension.ts`
 - `src/leetcode/client.ts`
-- `src/utils/textRenderer.ts`
-- `src/webview/DiscussionWebview.ts`
-- `src/webview/ProblemWebview.ts`
-- `src/test/suite/extension.test.ts`
-- `src/test/suite/textRenderer.test.ts`
-- `run-test.js` [DELETE]
-- `test-api.js` [DELETE]
-- `test-viewcolumn.js` [DELETE]
-- `test-vscode-api.js` [DELETE]
-
-## 2026-06-10 — Bump Version to v1.3.0 and Update Documentation
-
-### What was done
-
-1. Bumped the extension version to `1.3.0` in `package.json`.
-2. Added discussion browsing feature:
-   - Implemented `DiscussionWebview` to show threaded discussions for problems.
-   - Added `getDiscussionComments` and `getCommentReplies` GraphQL client methods in `LeetCodeClient`.
-   - Added `TextRenderer` utility to format and render raw HTML/unicode comment text.
-   - Integrated the "Show Discussions" button into `ProblemWebview` and added `topicId` to the `ProblemDetails` type/GraphQL query.
-3. Updated `CHANGELOG.md` with the additions in version `1.3.0` (Hints support, Discussion browsing, and CSRF/Session Fixation protection for Web Authorization callback flow) and updated the comparison links.
-4. Updated `README.md` to detail new features since `v1.0.0` (including Web Authorization login, direct SQL support, problem hints, interactive language switching, new shortcuts, and UI improvements), added the new discussion browsing feature, and documented the browser-based authorization flow.
-
-### Files modified
-
-- `package.json`
-- `CHANGELOG.md`
-- `README.md`
-- `src/extension.ts`
-- `src/leetcode/client.ts`
-- `src/leetcode/types.ts`
-- `src/utils/textRenderer.ts`
-- `src/webview/DiscussionWebview.ts`
-- `src/webview/ProblemWebview.ts`

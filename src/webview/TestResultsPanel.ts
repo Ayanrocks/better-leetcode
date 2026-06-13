@@ -43,6 +43,11 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   private pendingHtml: string | undefined;
   private onMessageCallback: ((message: { command: string }) => void) | undefined;
 
+  /**
+   * Initializes a new instance of the TestResultsPanel class.
+   *
+   * @param _extensionUri - The base URI of the extension.
+   */
   constructor(_extensionUri: vscode.Uri) {}
 
   /**
@@ -58,6 +63,10 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   /**
    * Called by VS Code when the webview view is first made visible.
    * Sets up the webview options and renders the empty state.
+   *
+   * @param webviewView - The webview view to resolve.
+   * @param _context - Context information about the webview view.
+   * @param _token - A cancellation token.
    */
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -111,6 +120,8 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   /**
    * Returns HTML for the empty state before any test is run.
+   *
+   * @returns The empty state HTML string.
    */
   private getEmptyHtml(): string {
     return `<!DOCTYPE html>
@@ -155,6 +166,9 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   /**
    * Returns HTML for the loading spinner state.
+   *
+   * @param message - The loading message to display.
+   * @returns The loading spinner HTML string.
    */
   private getLoadingHtml(message: string): string {
     const safeMessage = this.escapeHtml(message);
@@ -209,6 +223,9 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   /**
    * Returns the full results HTML with interactive test case selection.
+   *
+   * @param data - The test result display data.
+   * @returns The full results HTML string.
    */
   private getResultsHtml(data: TestResultDisplayData): string {
     const { result } = data;
@@ -653,6 +670,10 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   /**
    * Builds the HTML for the sidebar test case list items from resolved case data.
+   *
+   * @param cases - The list of case data.
+   * @param _statusColor - The status color for highlighting.
+   * @returns The HTML string for the sidebar case list.
    */
   private buildCaseListHtmlFromCases(cases: CaseData[], _statusColor: string): string {
     const items: string[] = [];
@@ -679,6 +700,9 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   /**
    * Builds the HTML for runtime and memory stats with progress bars.
+   *
+   * @param result - The submission check result containing stats.
+   * @returns The HTML string for stats.
    */
   private buildStatsHtml(result: SubmissionCheckResult): string {
     const runtimePct = result.runtime_percentile ?? 0;
@@ -707,6 +731,9 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   /**
    * Builds the HTML for error display (compile errors, runtime errors).
+   *
+   * @param errorText - The error text to display.
+   * @returns The HTML string for error display.
    */
   private buildErrorHtml(errorText: string): string {
     return `
@@ -718,6 +745,10 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   /**
    * Builds the HTML for a single test case detail from resolved CaseData.
+   *
+   * @param caseData - The case data to display, or undefined.
+   * @param isSubmit - Whether this is a submission result view.
+   * @returns The HTML string for the case detail.
    */
   private buildCaseDetailFromCase(
     caseData: CaseData | undefined,
@@ -779,6 +810,9 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
   /**
    * Builds a summary HTML when there are no per-case details to show
    * (e.g., a successful submission with all hidden tests passing).
+   *
+   * @param data - The test result display data.
+   * @returns The HTML string for success summary.
    */
   private buildSuccessSummary(data: TestResultDisplayData): string {
     const { result } = data;
@@ -802,6 +836,9 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    *  - On success: total_correct === total_testcases, no per-case data.
    *  - On failure: last_testcase, expected_output, and code_output
    *    describe the first failing case.
+   *
+   * @param data - The test result display data.
+   * @returns An array of CaseData resolved from the results.
    */
   private buildCases(data: TestResultDisplayData): CaseData[] {
     const { result, testInputs } = data;
@@ -878,6 +915,10 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   /**
    * Returns the total number of test cases for the status banner.
+   *
+   * @param data - The test result display data.
+   * @param cases - The list of cases.
+   * @returns The total number of test cases.
    */
   private getTotalCases(data: TestResultDisplayData, cases: CaseData[]): number {
     const { result } = data;
@@ -894,6 +935,10 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   /**
    * Returns the count of correct test cases for the status banner.
+   *
+   * @param data - The test result display data.
+   * @param cases - The list of cases.
+   * @returns The number of correct test cases.
    */
   private getTotalCorrect(data: TestResultDisplayData, cases: CaseData[]): number {
     const { result } = data;
@@ -912,6 +957,7 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
    * Returns the color associated with a LeetCode status code.
    *
    * @param statusCode - LeetCode status code (10=Accepted, 11=Wrong Answer, etc.).
+   * @returns The color hex code as a string.
    */
   private getStatusColor(statusCode: number): string {
     switch (statusCode) {
@@ -926,6 +972,9 @@ export class TestResultsPanel implements vscode.WebviewViewProvider {
 
   /**
    * Escapes HTML special characters to prevent XSS in webview content.
+   *
+   * @param text - The HTML string to escape.
+   * @returns The escaped HTML string.
    */
   private escapeHtml(text: string): string {
     return text

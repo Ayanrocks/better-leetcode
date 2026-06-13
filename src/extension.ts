@@ -318,6 +318,7 @@ export interface LayoutAction {
  *
  * @param isWebviewOpen Whether the problem webview is currently open anywhere
  * @param visibleEditorColumn The view column of the visible editor, or undefined if none
+ * @returns The layout actions to perform.
  */
 export function resolveLayoutActions(
   isWebviewOpen: boolean,
@@ -364,6 +365,11 @@ export function resolveLayoutActions(
 
 /**
  * Handles opening a problem by generating local files and displaying description & code side-by-side.
+ *
+ * @param authManager The LeetCode authentication manager instance.
+ * @param context The VS Code extension context.
+ * @param problemSlug The slug of the problem to open.
+ * @param preferredLang The optional preferred language to open the problem in.
  */
 export async function handleOpenProblem(
   authManager: LeetCodeAuthManager,
@@ -631,6 +637,8 @@ export async function handleOpenProblem(
  * Handles the fuzzy search command.
  * Awaits full problem catalog loading to search all ~4k problems,
  * not just the subset that's been lazily loaded into the tree view.
+ *
+ * @param allProblemsProvider The tree data provider for all problems.
  */
 async function handleSearch(allProblemsProvider: AllProblemsTreeDataProvider): Promise<void> {
   const problems = await allProblemsProvider.loadProblemsAsync();
@@ -660,6 +668,11 @@ async function handleSearch(allProblemsProvider: AllProblemsTreeDataProvider): P
 
 /**
  * Handles the show discussions command.
+ *
+ * @param authManager The LeetCode authentication manager instance.
+ * @param context The VS Code extension context.
+ * @param topicId The ID of the topic/discussion.
+ * @param title The title of the topic/discussion.
  */
 async function handleShowDiscussions(
   authManager: LeetCodeAuthManager,
@@ -721,6 +734,9 @@ export function readTestCases(filePath: string, fallback: string): string {
 /**
  * Path to the global inputLineCount cache file.
  * Stored at the extension's global storage path so it persists across sessions.
+ *
+ * @param globalStoragePath The extension's global storage path.
+ * @returns The path to the global inputLineCount cache file.
  */
 function getInputLineCountCachePath(globalStoragePath: string): string {
   return path.join(globalStoragePath, 'inputLineCount.json');
@@ -769,6 +785,7 @@ function writeInputLineCountCache(globalStoragePath: string, slug: string, count
  * Returns the number of function parameters, or null if unparseable.
  *
  * @param metaDataStr - The raw metaData JSON string from the API.
+ * @returns The derived input line count, or null.
  */
 export function deriveFromMetaData(metaDataStr: string | undefined): number | null {
   if (metaDataStr === undefined || metaDataStr === '') {
@@ -791,6 +808,7 @@ export function deriveFromMetaData(metaDataStr: string | undefined): number | nu
  *
  * @param content - The problem's HTML content string.
  * @param exampleTestcases - The raw exampleTestcases string from the API.
+ * @returns The derived input line count, or null.
  */
 export function deriveFromHtmlContent(
   content: string | undefined,
@@ -1108,7 +1126,7 @@ async function handleSubmitSolution(
  * lets the user pick a new language, and creates/opens the new solution file.
  *
  * @param authManager - The LeetCode auth manager.
- * @param context - The extension context for storage URI access.
+ * @param _context - The extension context for storage URI access.
  */
 async function handleChangeLanguage(
   authManager: LeetCodeAuthManager,
