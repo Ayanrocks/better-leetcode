@@ -51,8 +51,8 @@ export class LeetCodeStatusBarController {
       this.statusBarItem.text = '$(sign-in) Better LeetCode: Sign In';
       this.statusBarItem.command = 'better-leetcode.signin';
       this.statusBarItem.tooltip = 'Click to sign in to LeetCode';
-      this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
-      this.statusBarItem.color = undefined;
+      this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+      this.statusBarItem.color = 'white';
     }
   }
 }
